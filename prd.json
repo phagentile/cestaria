@@ -1,15 +1,166 @@
 {
-  "projectName": "Cestária - Mesa de Controle de Rugby",
+  "projectName": "Cestária — Mesa de Controle de Rugby",
   "branchName": "claude/rugby-dashboard-team-planning-Adj1R",
-  "description": "App web de mesa de controle para operação ao vivo de partidas de rugby, com registro de placar, eventos, cronômetros, súmula e exportação de relatórios.",
-  "phase": "team-planning",
+  "version": "2.0",
+  "phase": "detailed-planning",
+  "description": "App web de mesa de controle para operação ao vivo de partidas de rugby (XV e Sevens), com registro de placar, eventos, cronômetros, súmula e exportação de relatórios. Operado pelo Quarto Árbitro com supervisão do Gestor.",
+
+  "scope": {
+    "mvp": "Protótipo funcional completo EXCETO importação de PDF. Todas as funcionalidades operacionais, exportação de relatórios, cadastros mestres, operação offline, dois perfis de acesso.",
+    "postMvp": [
+      "Importação de PDF de súmula/elenco",
+      "Integração com Sporti (API)",
+      "Integração com sistema da Sul-Americana (API)",
+      "Perfis adicionais de acesso"
+    ],
+    "pilot": {
+      "type": "Piloto real em partida oficial",
+      "device": "Navegador web responsivo (desktop, tablet, mobile)",
+      "connectivity": "Deve funcionar totalmente offline por longos períodos",
+      "volume": "Baixo uso inicial"
+    }
+  },
+
+  "gameTypes": ["XV", "Sevens"],
+
+  "profiles": {
+    "gestor": {
+      "description": "Administrador do sistema. Cadastra confederações, federações, clubes, árbitros, categorias, tipos de jogo.",
+      "permissions": [
+        "CRUD completo de cadastros mestres",
+        "Criar/configurar partidas",
+        "Reabrir partida encerrada (com log)",
+        "Visualizar todas as partidas",
+        "Exportar relatórios"
+      ]
+    },
+    "quartoArbitro": {
+      "description": "Operador da mesa de controle durante a partida. Registra todos os eventos ao vivo.",
+      "permissions": [
+        "Registrar todos os eventos da partida",
+        "Editar/reverter/excluir qualquer evento",
+        "Gerenciar elenco e súmula",
+        "Aprovar exportação final",
+        "Encerrar partida",
+        "Reabrir partida encerrada (com log)",
+        "Exportar relatórios"
+      ]
+    }
+  },
+
+  "sla": {
+    "operationalLatency": "120ms",
+    "syncAfterReconnect": "120s",
+    "offlineCapability": "Longo período — totalmente funcional sem internet",
+    "offlineConflictResolution": "Histórico offline sobrescreve o banco completo ao reconectar",
+    "eventLoss": "Mínima tolerável",
+    "failureRate": "Baixa"
+  },
+
+  "confirmationRules": {
+    "requireConfirmation": [
+      "Registro de atletas e comissão técnica",
+      "Criação de partida",
+      "Encerramento de partida",
+      "Exclusão de eventos",
+      "Reset de relógio",
+      "Reabertura de partida encerrada"
+    ],
+    "quickAction": [
+      "Registro de try",
+      "Registro de conversão",
+      "Registro de penal",
+      "Registro de drop",
+      "Registro de penal try",
+      "Registro de cartão",
+      "Registro de substituição",
+      "Play/pause do relógio",
+      "Edição de evento existente"
+    ]
+  },
+
+  "matchClosure": {
+    "blockOnClose": "Ao encerrar, sistema bloqueia TODAS as alterações do Quarto Árbitro",
+    "reopen": "Tanto Gestor quanto Quarto Árbitro podem reabrir a partida",
+    "auditOnReopen": "Registrar em log: quem encerrou, quando encerrou, quem reabriu, quando reabriu",
+    "exportApproval": "Quarto Árbitro deve aprovar antes da exportação",
+    "exportCriteria": [
+      "Partida ter atingido 80 minutos (XV) ou tempo regulamentar (Sevens)",
+      "Hora de início registrada",
+      "Hora de fim registrada"
+    ]
+  },
+
+  "audit": {
+    "scope": "Histórico completo de alterações e registros",
+    "tracks": [
+      "Criação de registros",
+      "Edição de registros (valor anterior e novo)",
+      "Exclusão de registros",
+      "Encerramento de partida",
+      "Reabertura de partida",
+      "Login/logout de operador"
+    ]
+  },
+
+  "cadastrosMestres": {
+    "obrigatorios": [
+      "Confederação",
+      "Federação",
+      "Clubes",
+      "Árbitros",
+      "Categoria",
+      "Tipo de jogo (XV / Sevens)"
+    ],
+    "location": "Aba de cadastro no perfil do Gestor"
+  },
+
+  "reports": {
+    "linearEventReport": {
+      "format": "tempo | time | evento | placar time A | placar time B",
+      "description": "Linha do tempo cronológica de todos os eventos da partida"
+    },
+    "sumula": {
+      "requiredFields": [
+        "Dados dos clubes",
+        "Dados dos atletas e comissão técnica",
+        "Dados dos árbitros"
+      ],
+      "format": "PDF no formato oficial (modelo em anexo)"
+    }
+  },
+
+  "integrations": {
+    "sporti": {
+      "status": "Pós-MVP",
+      "import": ["Clubes", "Atletas", "Comissão técnica", "Árbitros"],
+      "export": ["Registros da partida"]
+    },
+    "sulAmericana": {
+      "status": "Pós-MVP",
+      "import": ["Clubes", "Atletas", "Comissão técnica", "Árbitros"],
+      "export": ["Registros da partida"]
+    }
+  },
+
+  "offline": {
+    "strategy": "Local-first. Tudo funciona offline. Ao reconectar, histórico offline sobrescreve o banco na nuvem.",
+    "conflictResolution": "Offline wins — dados locais têm prioridade total sobre o que estava na nuvem",
+    "duration": "Deve suportar partida inteira (80+ min) sem internet"
+  },
+
   "stories": [
     {
       "id": "PLAN-001",
-      "title": "Definição da equipe e estrutura de trabalho",
+      "title": "Planejamento de equipe e estratégia do projeto",
       "priority": 1,
-      "passes": true,
-      "description": "Montar equipe multidisciplinar virtual, definir responsabilidades, fases, entregáveis, riscos e stack recomendada."
+      "passes": true
+    },
+    {
+      "id": "PLAN-002",
+      "title": "Refinamento do PRD com respostas do stakeholder",
+      "priority": 2,
+      "passes": true
     }
   ]
 }
