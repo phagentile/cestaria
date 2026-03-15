@@ -1,0 +1,15 @@
+{
+  "projectName": "Cestária - Mesa de Controle de Rugby",
+  "branchName": "claude/rugby-dashboard-team-planning-Adj1R",
+  "description": "App web de mesa de controle para operação ao vivo de partidas de rugby, com registro de placar, eventos, cronômetros, súmula e exportação de relatórios.",
+  "phase": "team-planning",
+  "stories": [
+    {
+      "id": "PLAN-001",
+      "title": "Definição da equipe e estrutura de trabalho",
+      "priority": 1,
+      "passes": true,
+      "description": "Montar equipe multidisciplinar virtual, definir responsabilidades, fases, entregáveis, riscos e stack recomendada."
+    }
+  ]
+}

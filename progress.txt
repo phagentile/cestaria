@@ -1,0 +1,20 @@
+## Codebase Patterns
+- Documentação de planejamento vai em arquivos markdown na raiz do projeto
+- PRD em formato JSON na raiz do projeto (prd.json)
+- Branch de trabalho definida no PRD via campo branchName
+---
+
+## 2026-03-15 - PLAN-001
+- Criado documento completo de planejamento de equipe (team-planning.md)
+- Definida equipe multidisciplinar de 11 papéis com acúmulo para 4+1 no MVP
+- Documentadas 7 fases do projeto com entregáveis e critérios de aceite
+- Estrutura modular do app definida (9 módulos + shared)
+- Stack recomendada: Next.js + TypeScript + Zustand + PostgreSQL + Drizzle
+- 7 categorias de riscos identificadas e mitigadas
+- **Learnings for future iterations:**
+  - O maior desafio técnico é a dualidade de cronômetros: tempo de jogo (pausável) vs tempo real (contínuo)
+  - Placar NUNCA deve ser campo armazenado — sempre derivado da soma de eventos
+  - Regras do rugby mudam entre temporadas; configuração por competição é obrigatória
+  - Operação ao vivo exige UX com zero fricção para ações aditivas, confirmação apenas para destrutivas
+  - Offline-first é requisito real — estádios de rugby têm internet instável
+---
