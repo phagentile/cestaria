@@ -1,662 +1,776 @@
-# Cestária — Planejamento de Equipe e Estratégia de Projeto
+# Cestária — Planejamento de Equipe e Estratégia de Projeto (v2)
 
 ## Mesa de Controle de Rugby — Operação ao Vivo
+### Rugby XV e Sevens | Perfis: Gestor + Quarto Árbitro | Piloto Real
 
 ---
 
-# 1. ESTRUTURA DA EQUIPE
+> **Revisão 2.0** — Atualizada com as respostas do stakeholder em 15/03/2026.
+> Mudanças principais: escopo do MVP refinado (sem importação PDF), dois perfis de acesso, operação offline longa, Sevens incluído, cadastros mestres, critérios de exportação, lógica de encerramento/reabertura de partida.
 
-## 1.1 Papéis Necessários
+---
+
+# 1. ESCOPO DO MVP
+
+## O que ENTRA no MVP
+- Protótipo funcional completo de operação de partida
+- Controle de jogo (relógio, períodos, play/pause, reset, edição manual, fim de partida)
+- Pontuação (todos os tipos: try, conversão, penal, drop, penal try)
+- Cartões (amarelo, vermelho, vermelho temporário, relógios disciplinares)
+- Substituições (todos os tipos, fluxo separado de cartões)
+- Relógios médicos (sangue, HIA, sangue+HIA — tempo real)
+- Timeline de eventos (CRUD completo, recálculo retroativo)
+- Disputa de penais/drops (melhor de 5, morte súbita)
+- Elenco/súmula (inserção manual + importação via API futura)
+- Exportação de PDF (timeline de eventos + súmula oficial)
+- Cadastros mestres (confederação, federação, clubes, árbitros, categoria, tipo XV/Sevens)
+- Dois perfis: Gestor e Quarto Árbitro
+- Autenticação e autorização
+- Auditoria (histórico de alterações e registros)
+- Encerramento e reabertura de partida com log
+- Operação offline de longa duração
+- Sincronização ao reconectar (offline sobrescreve nuvem)
+
+## O que NÃO entra no MVP
+- Importação de PDF de súmula/elenco
+- Integração com Sporti (API)
+- Integração com sistema da Sul-Americana (API)
+- Perfis adicionais de acesso
+
+## Diferenças XV vs. Sevens
+
+| Aspecto | Rugby XV | Rugby Sevens |
+|---------|----------|-------------|
+| Duração regulamentar | 2x 40 min | 2x 7 min (ou 2x 10 min em final) |
+| Jogadores em campo | 15 | 7 |
+| Reservas | 8 | 5 |
+| Substituições | até 8 | até 5 |
+| Conversão | chute ao gol | drop kick obrigatório |
+| Tempo de conversão | 90 segundos | 30-40 segundos |
+| Cartão amarelo | 10 min de tempo de jogo | 2 min de tempo de jogo |
+| Intervalo | 10 min | 2 min |
+| Prorrogação | 2x 10 min | 2x 5 min |
+
+> O sistema DEVE ser parametrizável por tipo de jogo. Hardcoded não é aceitável.
+
+---
+
+# 2. ESTRUTURA DA EQUIPE
+
+## 2.1 Papéis Necessários
 
 | # | Papel | Por que existe | O que entrega | Prioridade |
 |---|-------|---------------|---------------|------------|
-| 1 | **Product Owner (PO)** | É o dono do escopo. Traduz a realidade operacional do rugby em requisitos claros. Sem PO, o time constrói a coisa errada. | Backlog priorizado, critérios de aceite, validação de entrega | CRÍTICA |
-| 2 | **Especialista em Regras do Rugby** | As regras do World Rugby (especialmente Lei 9 — jogo desleal, Lei 3 — substituições, e a lógica de períodos) são complexas e mudam. Erros aqui invalidam toda a operação. | Documento de regras operacionais, validação de lógica de negócio, homologação de fluxos | CRÍTICA |
-| 3 | **UI/UX Designer** | O app é usado ao vivo, sob pressão, por um operador que não pode errar. A interface precisa ser operacional, não bonita — precisa ser rápida, previsível e resistente a erros. | Wireframes, protótipos navegáveis, design system operacional, testes de usabilidade | ALTA |
-| 4 | **Front-end Developer** | Toda a lógica de cronômetros, timeline, interações em tempo real e estado do jogo vive no front-end. É o core do app. | Componentes React, lógica de estado, cronômetros, interface operacional funcional | CRÍTICA |
-| 5 | **Back-end Developer** | Persistência, exportação de PDF, autenticação, futura API de integração com plataformas de competição. | API REST, lógica de persistência, serviço de exportação, endpoints de integração | ALTA |
-| 6 | **Arquiteto de Software** | Decisões estruturais que afetam manutenibilidade, performance em tempo real e escalabilidade. Erros de arquitetura custam meses. | Diagrama de arquitetura, definição de stack, padrões de comunicação, estratégia de estado | ALTA |
-| 7 | **DBA / Modelagem de Dados** | Os dados do jogo (eventos, cronômetros, elenco) têm relações complexas. O modelo precisa suportar edição retroativa com recálculo automático. | Modelo ER, migrações, queries de agregação, estratégia de consistência | ALTA |
-| 8 | **QA / Tester** | Operação ao vivo não tolera bugs. Cronômetros, recálculo de placar e cartões disciplinares precisam funcionar perfeitamente. | Plano de testes, testes automatizados, testes de regressão, homologação | ALTA |
-| 9 | **DevOps / Infraestrutura** | Deploy confiável, baixa latência, estratégia offline-first para locais sem internet estável (estádios). | Pipeline CI/CD, infraestrutura, monitoramento, estratégia offline | MÉDIA |
-| 10 | **Especialista em Integrações** | Futura conexão com plataformas de competição exige padrões de API e contratos bem definidos desde o início. | Contratos de API, documentação de integração, adaptadores | MÉDIA (mas precisa ser planejada desde o início) |
-| 11 | **Segurança e Auditoria** | Dados de partida são oficiais. Precisam ser auditáveis, íntegros e protegidos contra manipulação. | Política de auditoria, log de alterações, controle de acesso, criptografia de dados sensíveis | MÉDIA |
+| 1 | **Product Owner (PO)** | Dono do escopo. Traduz a realidade operacional do rugby em requisitos claros e prioriza o backlog. | Backlog priorizado, critérios de aceite, validação de entrega, regras de negócio documentadas | CRÍTICA |
+| 2 | **Especialista em Regras do Rugby** | As Laws of the Game do World Rugby são complexas e mudam. Erros aqui invalidam toda a operação. Precisa cobrir XV e Sevens. | Documento de regras operacionais, validação de lógica de negócio, homologação de fluxos, diferenças XV/Sevens | CRÍTICA |
+| 3 | **UI/UX Designer** | O app é usado ao vivo, sob pressão, por um Quarto Árbitro que não pode errar. Interface precisa ser operacional — rápida, previsível, resistente a erros. | Wireframes, protótipos navegáveis, design system operacional, testes de usabilidade | ALTA |
+| 4 | **Front-end Developer** | Lógica de cronômetros, timeline, interações em tempo real, estado do jogo, offline-first. É o core do app. | Componentes React, lógica de estado, cronômetros, interface operacional, Service Worker | CRÍTICA |
+| 5 | **Back-end Developer** | Persistência, exportação de PDF, autenticação, auditoria, futura API de integração. | API REST, lógica de persistência, serviço de exportação, endpoints, auditoria | ALTA |
+| 6 | **Arquiteto de Software** | Decisões de offline-first, modelo de estado, sincronização, performance. Erros de arquitetura custam meses. | Diagrama de arquitetura, stack, padrões de sincronização, estratégia de estado | ALTA |
+| 7 | **DBA / Modelagem de Dados** | Dados do jogo têm relações complexas. Modelo precisa suportar edição retroativa, recálculo automático, auditoria e operação offline. | Modelo ER, migrações, queries de agregação, estratégia de consistência | ALTA |
+| 8 | **QA / Tester** | Operação ao vivo não tolera bugs. Piloto real é o critério de sucesso. | Plano de testes, testes automatizados, testes de regressão, homologação com partida simulada | ALTA |
+| 9 | **DevOps / Infraestrutura** | Deploy confiável, PWA com Service Worker, estratégia offline de longo prazo. | Pipeline CI/CD, infraestrutura, monitoramento, PWA config, estratégia de sync | MÉDIA |
+| 10 | **Especialista em Integrações** | Futura conexão com Sporti e Sul-Americana exige contratos de API desde o início. | Contratos de API, documentação, adapter pattern para futuras plataformas | MÉDIA |
+| 11 | **Segurança e Auditoria** | Dados de partida são oficiais. Auditoria de alterações e registros é obrigatória. Encerramento/reabertura logados. | Política de auditoria, log de alterações, controle de acesso por perfil (Gestor vs Quarto Árbitro) | MÉDIA |
 
-## 1.2 Acúmulo de Papéis na Fase Inicial
-
-Para um MVP realista, a equipe pode ser condensada:
+## 2.2 Acúmulo de Papéis no MVP
 
 | Pessoa | Papéis Acumulados | Justificativa |
 |--------|-------------------|---------------|
-| **Pessoa 1** | PO + Especialista Rugby | Quem entende o produto DEVE entender as regras. Na fase inicial, uma pessoa que conheça rugby e produto conduz ambos. |
-| **Pessoa 2** | Arquiteto + Back-end + DBA | As decisões de arquitetura, modelo de dados e API são interligadas. Um dev sênior full-stack cobre isso. |
-| **Pessoa 3** | Front-end (dedicado) | O front-end é o core. Cronômetros em tempo real, gerenciamento de estado complexo e UX operacional exigem foco total. |
-| **Pessoa 4** | UI/UX + QA | O designer que testa o que desenhou garante consistência entre intenção e implementação. |
-| **Pessoa 5 (parcial)** | DevOps + Segurança | Configuração inicial de infra e CI/CD, depois atua sob demanda. |
+| **Pessoa 1** | PO + Especialista Rugby | Quem entende o produto DEVE entender as regras. Precisa conhecer XV e Sevens. |
+| **Pessoa 2** | Arquiteto + Back-end + DBA | Decisões de arquitetura, modelo de dados, API e sync offline são interligadas. |
+| **Pessoa 3** | Front-end (dedicado) | Core do app: cronômetros, estado, offline-first, UX operacional. Foco total. |
+| **Pessoa 4** | UI/UX + QA | O designer que testa garante consistência entre intenção e implementação. |
+| **Pessoa 5 (parcial)** | DevOps + Segurança | Setup inicial de infra, CI/CD, PWA, auditoria. Depois atua sob demanda. |
 
-**Equipe mínima MVP: 4 pessoas dedicadas + 1 parcial.**
+**Equipe mínima MVP: 4 dedicadas + 1 parcial.**
 
 ---
 
-# 2. VISÃO DE CADA ÁREA
+# 3. PERFIS DE ACESSO E PERMISSÕES
 
-## 2.1 Front-end
+## 3.1 Gestor
 
-**Responsabilidade central:** Toda a experiência de operação ao vivo.
+**Função:** Administrador do sistema. Configura o ambiente antes da operação.
 
-**Desafios específicos:**
-- **Cronômetros múltiplos e simultâneos:** Relógio principal (tempo de jogo), relógios disciplinares (amarelo 10min, vermelho temporário 20min — pausam com o jogo), relógios médicos (sangue 15min, HIA 12min, sangue+HIA 17min — NÃO pausam com o jogo). Isso exige um sistema de timers com duas categorias distintas de comportamento.
-- **Estado do jogo complexo:** Período atual, placar, lista de eventos, elenco ativo (com substituições), cartões vigentes, penais em andamento — tudo interligado.
-- **Operação sob pressão:** O operador clica rápido, não pode ter latência visual, não pode ter confirmações desnecessárias (exceto ações destrutivas como reset/exclusão).
-- **Recálculo retroativo:** Excluir um try da timeline deve recalcular o placar automaticamente.
-- **Disputa de penais/drops:** Interface de melhor de 5 com morte súbita, clicável por tentativa, resultado exibido entre parênteses ao lado do placar.
+| Área | Permissão |
+|------|-----------|
+| Cadastros mestres | CRUD de confederação, federação, clubes, árbitros, categorias, tipo de jogo |
+| Partidas | Criar, configurar, visualizar todas |
+| Operação ao vivo | Pode operar, mas tipicamente delega ao Quarto Árbitro |
+| Encerramento | Pode reabrir partida encerrada (com log) |
+| Exportação | Pode exportar relatórios |
+| Usuários | Gerencia contas de Quarto Árbitro |
 
-**Entregas:**
-- Componente de relógio universal (configurável: tempo de jogo vs. tempo real, pausável vs. contínuo)
-- Painel de controle principal (placar, período, ações rápidas)
-- Timeline de eventos (CRUD com recálculo)
-- Módulo de cartões (com seleção de motivo Lei 9)
-- Módulo de substituições (fluxo separado de cartões, tipos específicos de rugby)
-- Módulo de penais/drops (interface de disputa)
-- Módulo de elenco/súmula (importação PDF, edição manual)
-- Exportação (acionamento de geração de PDF)
+## 3.2 Quarto Árbitro
 
-**Padrões obrigatórios:**
-- Estado centralizado (Zustand ou Redux Toolkit)
-- Timers baseados em `requestAnimationFrame` ou `setInterval` com drift correction
-- Separação clara entre lógica de negócio (regras do rugby) e lógica de UI
-- Persistência local (IndexedDB/localStorage) para resiliência offline
+**Função:** Operador da mesa de controle durante a partida.
 
-## 2.2 Back-end
+| Área | Permissão |
+|------|-----------|
+| Cadastros mestres | Somente leitura |
+| Partida designada | Registrar TODOS os eventos ao vivo |
+| Edição | Editar, reverter, excluir QUALQUER evento da partida |
+| Elenco/Súmula | Gerenciar elenco e súmula (COM confirmação obrigatória) |
+| Encerramento | Encerrar partida → bloqueia TODAS as alterações do próprio Quarto Árbitro |
+| Reabertura | Pode reabrir partida (com log: quem encerrou, quando, quem reabriu, quando) |
+| Exportação | Aprovar exportação final (critério: 80 min batidos + hora início + hora fim registradas) |
 
-**Responsabilidade central:** Persistência, exportação e futura integração.
+## 3.3 Regras de Confirmação
 
-**Desafios específicos:**
-- **Geração de PDF:** Três formatos de exportação com layouts diferentes. Precisa suportar logos, tabelas e formatação oficial.
-- **Auditoria:** Toda alteração em um registro de partida deve ser logada (quem, quando, o quê, valor anterior, valor novo).
-- **API de integração futura:** Os endpoints devem ser desenhados desde o início com contratos que permitam integração com plataformas de competição (importação de campeonato, equipes, partidas).
-- **Importação de PDF de elenco:** Parser de PDF para extrair lista de jogadores (posição, número, nome).
+| Ação | Confirmação? | Justificativa |
+|------|-------------|---------------|
+| Registro de atletas e comissão | SIM | Ação de cadastro, não operacional |
+| Criação de partida | SIM | Ação administrativa |
+| Encerramento de partida | SIM | Irreversível (até reabertura) |
+| Exclusão de eventos | SIM | Destrutiva, afeta placar |
+| Reset de relógio | SIM | Destrutiva |
+| Reabertura de partida | SIM | Altera estado oficial, logada |
+| Registrar try/conversão/penal/drop | NÃO | Ação rápida, operação ao vivo |
+| Registrar penal try | NÃO | Ação rápida |
+| Registrar cartão | NÃO | Ação rápida |
+| Registrar substituição | NÃO | Ação rápida |
+| Play/pause do relógio | NÃO | Ação mais frequente do operador |
+| Edição de evento existente | NÃO | Correção rápida na timeline |
 
-**Entregas:**
-- API REST para CRUD de partidas, eventos, elencos
-- Serviço de geração de PDF (3 formatos)
-- Serviço de importação/parsing de PDF
-- Sistema de auditoria (audit log)
-- Endpoints preparados para integração futura
-- Autenticação e autorização
+---
 
-**Padrões obrigatórios:**
-- Versionamento de API desde o dia 1 (`/api/v1/`)
-- Respostas padronizadas com envelope (`{ data, error, meta }`)
-- Validação de entrada com schemas (Zod ou similar)
-- Separação entre camada de rota, serviço e repositório
+# 4. LÓGICA DE ENCERRAMENTO E EXPORTAÇÃO
 
-## 2.3 UI/UX
-
-**Responsabilidade central:** Criar uma interface operacional, não decorativa.
-
-**Princípios fundamentais:**
-- **Operação ao vivo = zero fricção.** Cada clique a mais é um erro em potencial.
-- **Hierarquia visual por urgência:** Placar e relógio são primários. Timeline é secundária. Elenco é terciário.
-- **Prevenção de erro > recuperação de erro.** Confirmação apenas para ações destrutivas (reset, exclusão, fim de partida). Para ações aditivas (registrar try, cartão), zero fricção.
-- **Feedback imediato:** Toda ação deve ter resposta visual em < 100ms.
-- **Acessibilidade operacional:** Contraste alto, fontes grandes para relógio/placar, áreas de toque generosas.
-
-**Entregas:**
-- Mapa de fluxos operacionais (como o operador navega em cada cenário)
-- Wireframes de baixa fidelidade para validação com PO
-- Protótipo de alta fidelidade navegável
-- Design system operacional (cores de status, tipografia, espaçamento, componentes)
-- Guia de estados (jogo pausado, cartão ativo, prorrogação, penais)
-- Testes de usabilidade com operador real (se possível)
-
-**Decisões de UX críticas que o time precisa resolver:**
-1. Layout de tela única vs. abas/painéis? (Recomendo: tela única com painéis colapsáveis)
-2. Como exibir múltiplos cronômetros disciplinares simultâneos? (Até 3 amarelos + vermelhos temporários ao mesmo tempo)
-3. Como diferenciar visualmente cartão para atleta vs. staff?
-4. Como exibir a disputa de penais sem poluir o painel principal?
-5. Como garantir que o operador saiba em qual período está sem precisar pensar?
-
-## 2.4 Banco de Dados
-
-**Responsabilidade central:** Modelo relacional que suporte a complexidade do rugby e permita recálculo retroativo.
-
-**Entidades principais:**
+## 4.1 Fluxo de Encerramento
 
 ```
-Match (partida)
-├── id, home_team_id, away_team_id, competition_id?, venue, date
-├── status: scheduled | first_half | half_time | second_half | extra_time | penalties | finished
-├── clock_seconds, clock_running (boolean)
+Quarto Árbitro clica "Encerrar Partida"
+         │
+         ▼
+┌─────────────────────────────┐
+│ Confirmação obrigatória:    │
+│ "Deseja encerrar a partida?"│
+└──────────┬──────────────────┘
+           │ SIM
+           ▼
+┌─────────────────────────────┐
+│ Sistema registra em log:    │
+│ - Quem encerrou             │
+│ - Quando encerrou           │
+│ - Estado final da partida   │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│ PARTIDA BLOQUEADA           │
+│ - Quarto Árbitro não pode   │
+│   alterar NADA              │
+│ - Relógios congelam         │
+│ - Timeline somente leitura  │
+│ - Pode exportar/visualizar  │
+└─────────────────────────────┘
+```
+
+## 4.2 Fluxo de Reabertura
+
+```
+Gestor OU Quarto Árbitro clica "Reabrir Partida"
+         │
+         ▼
+┌─────────────────────────────┐
+│ Confirmação obrigatória     │
+└──────────┬──────────────────┘
+           │ SIM
+           ▼
+┌─────────────────────────────┐
+│ Sistema registra em log:    │
+│ - Quem reabriu              │
+│ - Quando reabriu            │
+│ - Que estava finalizada     │
+│   desde [data/hora]         │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│ PARTIDA DESBLOQUEADA        │
+│ Volta ao estado operacional │
+└─────────────────────────────┘
+```
+
+## 4.3 Critérios de Exportação
+
+O Quarto Árbitro pode aprovar a exportação oficial quando:
+1. Partida atingiu 80 minutos (XV) ou tempo regulamentar (Sevens)
+2. Hora de início da partida registrada
+3. Hora de fim da partida registrada
+
+Se qualquer critério não for atendido, o sistema exibe aviso mas **permite exportação** (pode haver situações excepcionais como jogo abandonado).
+
+---
+
+# 5. OPERAÇÃO OFFLINE
+
+## 5.1 Estratégia: Local-First
+
+O app funciona **completamente** no navegador. O servidor é backup e sincronização, não dependência.
+
+```
+┌─────────────────────────────────────────────┐
+│                NAVEGADOR                     │
+│                                              │
+│  ┌─────────┐    ┌──────────┐    ┌────────┐ │
+│  │ React   │◄──►│ Zustand  │◄──►│IndexedDB│ │
+│  │ UI      │    │ Store    │    │(Dexie) │ │
+│  └─────────┘    └──────────┘    └────────┘ │
+│                       │                      │
+│              ┌────────▼────────┐             │
+│              │ Sync Queue     │             │
+│              │ (operations    │             │
+│              │  pendentes)    │             │
+│              └────────┬────────┘             │
+│                       │                      │
+│              ┌────────▼────────┐             │
+│              │ Service Worker │             │
+│              │ (PWA)          │             │
+│              └────────┬────────┘             │
+└───────────────────────┼─────────────────────┘
+                        │ quando online
+                        ▼
+               ┌─────────────────┐
+               │    SERVIDOR     │
+               │  PostgreSQL     │
+               └─────────────────┘
+```
+
+## 5.2 Regras de Sincronização
+
+| Cenário | Comportamento |
+|---------|--------------|
+| App online | Salva local + envia para servidor imediatamente |
+| App offline | Salva local + enfileira operação para sync |
+| Reconexão | Envia TODAS as operações pendentes (FIFO) |
+| Conflito | **Offline wins** — dados locais sobrescrevem o que estava na nuvem |
+| Tempo máximo de sync | 120 segundos após reconexão |
+| Crash/bateria | Ao reabrir, recupera estado completo do IndexedDB |
+| Partida inteira offline | Suportado. Tudo funciona. Sync ocorre quando houver internet. |
+
+## 5.3 O que precisa funcionar 100% offline
+
+- Play/pause/reset do relógio
+- Registro de todos os tipos de evento
+- Cronômetros disciplinares e médicos
+- Timeline completa (CRUD + recálculo)
+- Disputa de penais
+- Edição/exclusão de eventos
+- Geração de PDF (no navegador, sem servidor)
+
+---
+
+# 6. RELATÓRIOS E EXPORTAÇÃO
+
+## 6.1 Relatório Linear de Eventos (Timeline)
+
+Formato: `tempo | time | evento | placar time A | placar time B`
+
+Exemplo:
+```
+05:23 | Time A | Try - #11 João Silva        | 5  | 0
+06:45 | Time A | Conversão - #10 Pedro Santos | 7  | 0
+12:30 | Time B | Penal - #10 Carlos Lima      | 7  | 3
+23:15 | Time A | Cartão Amarelo - #6 Rafael   | 7  | 3
+35:00 | Time B | Try - #14 André Costa        | 7  | 8
+36:12 | Time B | Conversão Perdida - #10      | 7  | 8
+40:00 | ---    | Fim do 1º Tempo              | 7  | 8
+```
+
+## 6.2 Súmula Oficial (PDF)
+
+Campos obrigatórios:
+- **Dados da partida:** Data, hora, local, competição, categoria, tipo (XV/Sevens)
+- **Dados dos clubes:** Nome, escudo, cores
+- **Dados dos atletas:** Número, nome, posição, titular/reserva, eventos (cartões, substituições, pontuação)
+- **Comissão técnica:** Cargo, nome
+- **Dados dos árbitros:** Nome, função (central, assistente 1, assistente 2, TMO, quarto árbitro)
+- **Resultado final:** Placar, placar do 1T, placar de penais (se aplicável)
+
+> Modelo exato do PDF será baseado no anexo fornecido pelo stakeholder.
+
+## 6.3 Fluxo de Exportação
+
+```
+Quarto Árbitro clica "Exportar"
+         │
+         ▼
+┌─────────────────────────────┐
+│ Verifica critérios:         │
+│ ✓ 80 min batidos?           │
+│ ✓ Hora de início?           │
+│ ✓ Hora de fim?              │
+└──────────┬──────────────────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  TODOS OK    PENDENTE
+     │           │
+     ▼           ▼
+  Gera PDF    Aviso + permite
+              gerar mesmo assim
+```
+
+---
+
+# 7. CADASTROS MESTRES (ABA DO GESTOR)
+
+Localizados na área administrativa do perfil Gestor:
+
+| Cadastro | Campos | Obrigatório no MVP |
+|----------|--------|-------------------|
+| **Confederação** | Nome, sigla, país, logo | Sim |
+| **Federação** | Nome, sigla, estado/região, confederação vinculada, logo | Sim |
+| **Clubes** | Nome, sigla, cidade, federação vinculada, logo, cores | Sim |
+| **Árbitros** | Nome, função habitual, federação, foto (opcional) | Sim |
+| **Categorias** | Nome (adulto, juvenil, M19, M21, feminino, etc.) | Sim |
+| **Tipo de Jogo** | XV ou Sevens (com parâmetros associados: duração, jogadores, substituições, cartão amarelo) | Sim |
+
+Esses cadastros alimentam a criação de partidas e a geração de súmulas.
+
+---
+
+# 8. AUDITORIA
+
+## O que é logado
+
+| Evento | Campos registrados |
+|--------|-------------------|
+| Criação de registro | Entidade, ID, valores, quem, quando |
+| Edição de registro | Entidade, ID, campo alterado, valor anterior, valor novo, quem, quando |
+| Exclusão de registro | Entidade, ID, valores no momento da exclusão, quem, quando |
+| Encerramento de partida | Match ID, quem, quando, estado final |
+| Reabertura de partida | Match ID, quem, quando, quem havia encerrado, quando havia sido encerrado |
+| Login/logout | User ID, quando, IP |
+
+## Retenção
+- Logs de auditoria **nunca são excluídos**
+- Mesmo exclusão de eventos é soft delete (mantém registro para auditoria)
+
+---
+
+# 9. VISÃO DE CADA ÁREA (REFINADA)
+
+## 9.1 Front-end
+
+**Mudanças em relação à v1:**
+- **Offline-first é requisito primário, não complementar.** O app DEVE funcionar por uma partida inteira (80+ min) sem internet. Isso significa: toda lógica de negócio no front-end, persistência em IndexedDB, Service Worker para PWA.
+- **Geração de PDF deve funcionar no navegador.** Não pode depender do servidor.
+- **Suporte a XV e Sevens.** Parâmetros de jogo (duração, jogadores, cartão amarelo) configuráveis.
+- **SLA de 120ms.** Toda interação do operador deve responder em < 120ms.
+
+**Entregas adicionais:**
+- Service Worker com Workbox (PWA offline completo)
+- Persistência Dexie.js com sync queue
+- Geração de PDF no browser (@react-pdf/renderer)
+- Parametrização por tipo de jogo (XV vs Sevens)
+- Tela de cadastros mestres (Gestor)
+- Fluxo de encerramento/reabertura com log
+
+## 9.2 Back-end
+
+**Mudanças em relação à v1:**
+- **Servidor é secundário.** O front-end é local-first. O back-end recebe dados sincronizados.
+- **Importação de PDF removida do MVP.**
+- **Sync endpoint.** Deve aceitar batch de operações offline e aplicar em ordem.
+- **Lógica de conflito simples:** offline wins (sobrescreve).
+
+**Entregas adicionais:**
+- Endpoint de sync (`POST /api/v1/sync`) para receber batch de operações
+- CRUD de cadastros mestres
+- Controle de acesso por perfil (Gestor vs Quarto Árbitro)
+- Audit log persistente
+
+## 9.3 Banco de Dados
+
+**Modelo atualizado com cadastros mestres:**
+
+```
+CADASTROS MESTRES (gerenciados pelo Gestor)
+├── Confederation (id, name, acronym, country, logo_url)
+├── Federation (id, name, acronym, region, confederation_id, logo_url)
+├── Club (id, name, acronym, city, federation_id, logo_url, primary_color, secondary_color)
+├── Referee (id, name, role, federation_id, photo_url?)
+├── Category (id, name, description)
+└── GameType (id, name: 'XV' | 'Sevens', config: JSONB)
+    └── config: { half_duration, players, reserves, max_subs,
+                  yellow_card_minutes, extra_time_duration, ... }
+
+PARTIDA
+├── Match
+│   ├── id, home_club_id, away_club_id, game_type_id, category_id
+│   ├── competition_name?, venue, date, start_time?, end_time?
+│   ├── status: scheduled | live | finished | reopened
+│   ├── closed_at?, closed_by?, reopened_at?, reopened_by?
+│   ├── clock_seconds, clock_running
+│   └── operated_by (user_id do Quarto Árbitro)
 │
-├── MatchRoster (elenco por partida)
-│   ├── player_id, team_id, shirt_number, position
+├── MatchRoster (elenco por time por partida)
+│   ├── match_id, club_id, player_name, shirt_number, position
 │   ├── role: starter | reserve | staff
-│   └── active (boolean — muda com substituições)
+│   ├── staff_role? (técnico, auxiliar, médico, fisio, etc.)
+│   └── active (boolean)
 │
-├── MatchEvent (timeline)
-│   ├── id, match_id, team_id, player_id?, minute, second
-│   ├── event_type: try | conversion_made | conversion_missed | penalty_kick_made |
-│   │   penalty_kick_missed | drop_goal_made | drop_goal_missed | penalty_try |
-│   │   yellow_card | red_card | temp_red_card | substitution_in | substitution_out |
-│   │   blood_time_start | blood_time_end | hia_start | hia_end | period_start | period_end
-│   ├── points (calculado pelo tipo)
-│   ├── metadata (JSONB — motivo Lei 9, descrição, tipo de substituição, etc.)
-│   └── created_at, updated_at, deleted_at (soft delete para auditoria)
+├── MatchReferee (árbitros da partida)
+│   ├── match_id, referee_id, role_in_match (central, AR1, AR2, TMO, 4th)
 │
-├── DisciplinaryClock (relógios disciplinares ativos)
-│   ├── event_id (referência ao cartão), player_id, team_id
-│   ├── type: yellow | temp_red
-│   ├── duration_seconds (600 para amarelo, 1200 para vermelho temporário)
-│   ├── elapsed_game_seconds (acumula apenas quando relógio do jogo roda)
-│   └── status: active | expired | cancelled
+├── MatchEvent (timeline — mesma estrutura da v1)
 │
-├── MedicalClock (relógios médicos ativos)
-│   ├── event_id, player_id, team_id
-│   ├── type: blood | hia | blood_hia
-│   ├── duration_seconds (900 | 720 | 1020)
-│   ├── started_at (timestamp real — conta em tempo real)
-│   └── status: active | expired | cancelled
+├── DisciplinaryClock (mesma estrutura, com ajuste para Sevens: 2 min)
 │
-├── PenaltyShootout (disputa de penais)
-│   ├── round, team_id, player_id?, result: made | missed
-│   └── order (1-5 para fase normal, 6+ para morte súbita)
+├── MedicalClock (mesma estrutura)
 │
-└── AuditLog
-    ├── entity, entity_id, action, field, old_value, new_value
-    ├── user_id, timestamp
-    └── ip_address?
+├── PenaltyShootout (mesma estrutura)
+│
+├── SyncQueue (fila de operações offline)
+│   ├── id, operation_type, entity, payload, created_at, synced_at?
+│
+└── AuditLog (expandido com encerramento/reabertura)
 ```
 
-**Regras de integridade:**
-- Placar é SEMPRE calculado somando `points` dos `MatchEvent` onde `deleted_at IS NULL`. Nunca armazenado como campo fixo.
-- Excluir evento (soft delete) = recalcular placar automaticamente.
-- Relógio disciplinar acumula tempo de jogo. Se o jogo pausa, o relógio disciplinar pausa. Isso é controlado pelo campo `elapsed_game_seconds` que só incrementa quando `match.clock_running = true`.
-- Relógio médico usa `started_at` real e conta em tempo real independente do jogo.
+## 9.4 UI/UX
 
-## 2.5 Produto / Regras de Negócio
+**Mudanças em relação à v1:**
+- **Dois contextos de UI distintos:** Área administrativa (Gestor — cadastros, criação de partida) e Área operacional (Quarto Árbitro — mesa de controle ao vivo).
+- **Responsivo obrigatório:** Deve funcionar em desktop, tablet e mobile.
+- **Indicador de status online/offline** sempre visível.
+- **Indicador de sync pendente** quando offline.
 
-**Responsabilidade central:** Garantir que o app reflita fielmente as Laws of the Game do World Rugby.
+**Fluxos de UI:**
 
-**Documentos de referência obrigatórios:**
-- World Rugby Laws of the Game (atualização vigente)
-- Regulamento específico da competição (pode variar duração de tempos, número de substituições, regras de HIA)
-- Diretrizes de Match Commissioner / Match Officials
+```
+LOGIN
+  │
+  ├── GESTOR → Dashboard Administrativo
+  │     ├── Cadastros Mestres (Confederação, Federação, Clubes, Árbitros, Categorias)
+  │     ├── Criar Partida (com confirmação)
+  │     ├── Lista de Partidas
+  │     └── Perfil / Configurações
+  │
+  └── QUARTO ÁRBITRO → Lista de Partidas Designadas
+        └── Entrar na Partida → MESA DE CONTROLE
+              ├── Cabeçalho: Placar + Relógio + Período + Botão Encerrar
+              ├── Painel de Ações: Pontuação | Cartões | Substituições
+              ├── Cronômetros Ativos: Disciplinares + Médicos
+              ├── Timeline de Eventos
+              ├── Elenco/Súmula
+              ├── Penais/Drops (quando aplicável)
+              └── Exportação
+```
 
-**Regras de negócio críticas que precisam estar documentadas antes de qualquer código:**
+## 9.5 QA
 
-| Regra | Detalhe | Impacto no Sistema |
-|-------|---------|-------------------|
-| Pontuação | Try = 5, Conversão = 2, Penal = 3, Drop = 3, Penal Try = 7 (automático) | Tabela de pontos por tipo de evento |
-| Penal Try | Não tem jogador. Número 00. Conversão não é tentada. | UI não pede jogador, não habilita conversão |
-| Cartão Amarelo | 10 min de tempo de jogo | Timer pausável com jogo |
-| Vermelho Temporário | 20 min de tempo de jogo (regra experimental World Rugby) | Timer pausável com jogo, lógica diferente de vermelho definitivo |
-| Vermelho Definitivo | Sem retorno | Sem timer, jogador removido permanentemente |
-| Substituição por Sangue | Temporária. Relógio de 15 min em tempo real | Timer independente, jogador pode retornar |
-| Substituição por HIA | Temporária. Relógio de 12 min em tempo real | Timer independente, jogador pode retornar ou ser substituído definitivamente |
-| Sangue + HIA | Relógio de 17 min em tempo real | Timer independente, combina ambas situações |
-| Front Row | Substituição específica para pilares/hooker. Pode ser não-contestada se não houver substituto qualificado | Afeta regras de scrum |
-| Períodos | 1T: 00:00→40:00, 2T: 40:00→80:00, Prorrogação: 00:00→ | Lógica de exibição e persistência de tempo |
-| Penais/Drops | Melhor de 5, morte súbita em empate | Interface específica, lógica de encerramento |
-
-**Entregáveis do PO:**
-- Documento de regras operacionais (validado com especialista)
-- User stories com critérios de aceite detalhados
-- Matriz de tipos de evento com atributos obrigatórios/opcionais
-- Fluxogramas dos cenários mais complexos (substituição + cartão, HIA que vira substituição definitiva)
-
-## 2.6 QA / Testes
-
-**Responsabilidade central:** Garantir que o app funcione corretamente sob todas as combinações de eventos de uma partida real.
-
-**Estratégia de testes:**
-
-| Nível | O que testa | Ferramenta sugerida | Exemplos |
-|-------|------------|-------------------|----------|
-| Unitário | Lógica de negócio pura | Vitest | Cálculo de placar, lógica de timer, validação de substituição |
-| Integração | Fluxos completos | Testing Library + MSW | Registrar try → atualizar placar → aparecer na timeline |
-| E2E | Cenários operacionais reais | Playwright | Partida completa: início → eventos → fim → exportação |
-| Visual | Consistência de UI | Storybook + Chromatic | Componentes em todos os estados |
-| Performance | Timers e responsividade | Lighthouse + custom benchmarks | Drift de cronômetro < 50ms após 40 min |
-| Regressão | Nada quebra ao adicionar feature | CI automatizado | Suite completa a cada PR |
-
-**Cenários de teste obrigatórios:**
-1. Partida completa de 80 minutos com todos os tipos de evento
-2. Exclusão de try no meio da partida → recálculo correto
-3. 3 cartões amarelos simultâneos para times diferentes → 3 cronômetros disciplinares paralelos
-4. Substituição por HIA → timer de 12 min rodando → jogo pausa → timer médico NÃO pausa
-5. Disputa de penais: 5 rodadas + empate + morte súbita
-6. Exportação dos 3 formatos de PDF com dados completos
-7. Importação de PDF de elenco com formatos variados
-8. Edição manual do relógio em diferentes períodos
-9. Penal try: verifica que não pede jogador e atribui 7 pontos
-10. Fim de partida: botão no cabeçalho, com confirmação, congela tudo
-
-## 2.7 DevOps / Infraestrutura
-
-**Responsabilidade central:** Deploy confiável e estratégia offline-first.
-
-**Requisitos de infraestrutura:**
-- **Latência baixa:** O app é usado ao vivo. Qualquer delay > 200ms é perceptível.
-- **Resiliência offline:** Estádios de rugby frequentemente têm internet instável. O app DEVE funcionar offline e sincronizar quando reconectar.
-- **Deploy simples:** A equipe é pequena. O deploy não pode ser um processo complexo.
-
-**Entregas:**
-- Pipeline CI/CD (GitHub Actions)
-- Hospedagem com CDN (Vercel/Cloudflare Pages para front, Railway/Fly.io para back)
-- Service Worker para offline-first
-- Estratégia de sincronização de dados (conflict resolution)
-- Monitoramento de erros (Sentry)
-- Backup automático de dados de partida
-
-## 2.8 Integrações
-
-**Responsabilidade central:** Preparar o sistema para integração futura sem bloquear o MVP.
-
-**Estratégia:** Não implementar integração no MVP, mas arquitetar para ela.
-
-**O que fazer agora (MVP):**
-- Definir contratos de API que permitam importar: campeonato, equipes, logos, partidas, agenda, resultados
-- Modelar entidades `Competition`, `Team`, `Season` mesmo que preenchidas manualmente no MVP
-- Usar UUIDs como identificadores (facilita sincronização futura)
-- Documentar endpoints com OpenAPI/Swagger
-
-**O que fazer depois (pós-MVP):**
-- Adaptadores para plataformas específicas de competição
-- Webhook para envio automático de resultado ao fim da partida
-- Importação de escalação via API (substituindo importação de PDF)
+**Cenários adicionais obrigatórios:**
+1. Partida de Sevens completa (2x 7 min, cartão amarelo de 2 min, 7 jogadores)
+2. Operação 100% offline: iniciar partida sem internet → registrar eventos → reconectar → sync
+3. Crash + recuperação: fechar aba no meio da partida → reabrir → estado intacto
+4. Encerrar partida → verificar que TUDO está bloqueado → reabrir → verificar que voltou
+5. Critérios de exportação: tentar exportar sem hora de início → verificar aviso
+6. Cadastros mestres: criar confederação → federação → clube → verificar vínculo
+7. Dois perfis: logar como Gestor vs Quarto Árbitro → verificar permissões diferentes
+8. Sync com 50+ operações pendentes → verificar que todas são aplicadas em ordem
+9. Responsividade: testar em desktop, tablet e mobile
+10. Latência: toda interação < 120ms no dispositivo
 
 ---
 
-# 3. FORMA DE TRABALHO DA EQUIPE
-
-## 3.1 Fluxo de Definição → Implementação → Validação
-
-```
-                    ┌──────────────────────────┐
-                    │  ESPECIALISTA EM RUGBY    │
-                    │  Define as regras reais   │
-                    └──────────┬───────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────────┐
-                    │  PRODUCT OWNER            │
-                    │  Traduz regras em         │
-                    │  requisitos + critérios   │
-                    │  de aceite                │
-                    └──────────┬───────────────┘
-                               │
-                    ┌──────────┴───────────────┐
-                    │                          │
-                    ▼                          ▼
-          ┌─────────────────┐      ┌─────────────────┐
-          │  UI/UX          │      │  ARQUITETO       │
-          │  Transforma     │      │  Define modelo   │
-          │  requisitos em  │      │  de dados e      │
-          │  interface      │      │  estrutura       │
-          └────────┬────────┘      └────────┬────────┘
-                   │                        │
-                   ▼                        ▼
-          ┌─────────────────┐      ┌─────────────────┐
-          │  FRONT-END      │      │  BACK-END + DBA  │
-          │  Implementa     │      │  Implementa      │
-          │  interface e    │      │  API, dados e    │
-          │  lógica de      │      │  exportação      │
-          │  estado         │      │                  │
-          └────────┬────────┘      └────────┬────────┘
-                   │                        │
-                   └──────────┬─────────────┘
-                              │
-                              ▼
-                   ┌─────────────────────┐
-                   │  QA                  │
-                   │  Valida contra       │
-                   │  critérios de aceite │
-                   │  e regras do rugby   │
-                   └──────────┬──────────┘
-                              │
-                              ▼
-                   ┌─────────────────────┐
-                   │  PO + ESPECIALISTA  │
-                   │  Homologação final  │
-                   └─────────────────────┘
-```
-
-## 3.2 Quem faz o quê
-
-| Pergunta | Resposta |
-|----------|----------|
-| Quem define as regras? | Especialista em Rugby, validado pelo PO |
-| Quem transforma regras em interface? | UI/UX Designer, com revisão do PO |
-| Quem transforma interface em código? | Front-end Developer, seguindo protótipos aprovados |
-| Quem valida consistência dos dados? | DBA + Back-end + QA |
-| Quem aprova a entrega? | PO, com checklist de critérios de aceite |
-| Quem garante que não quebrou nada? | QA + CI automatizado |
-
-## 3.3 Cadência de Trabalho
-
-- **Sprints de 1 semana** (projeto pequeno, precisa de iteração rápida)
-- **Daily standup de 15 min** (async se equipe for remota)
-- **Review ao fim de cada sprint** com demo para PO
-- **Retrospectiva a cada 2 sprints**
-- **Backlog grooming** antes de cada sprint com PO + Especialista Rugby
-
----
-
-# 4. ENTREGÁVEIS POR FASE
+# 10. FASES DO PROJETO (REFINADAS)
 
 ## Fase 1: Descoberta e Definição (2 semanas)
 
 | Item | Detalhe |
 |------|---------|
 | **Participantes** | PO, Especialista Rugby, UI/UX, Arquiteto |
-| **Entrega** | Documento de regras operacionais, user stories priorizadas, fluxogramas de cenários complexos, wireframes de baixa fidelidade |
-| **Critério de aceite** | PO e Especialista validam que TODAS as regras estão documentadas. Wireframes cobrem os 10 módulos funcionais. |
+| **Entrega** | Documento de regras operacionais (XV + Sevens), user stories priorizadas, fluxogramas de cenários complexos, wireframes de baixa fidelidade, modelo do PDF da súmula |
+| **Critério de aceite** | PO e Especialista validam que TODAS as regras de XV e Sevens estão documentadas. Wireframes cobrem todos os módulos. Modelo de súmula aprovado. |
 
 ## Fase 2: Arquitetura e Modelagem (1 semana)
 
 | Item | Detalhe |
 |------|---------|
 | **Participantes** | Arquiteto, Back-end, DBA, Front-end |
-| **Entrega** | Diagrama de arquitetura, modelo ER, definição de stack, contratos de API (OpenAPI), estrutura de projeto |
-| **Critério de aceite** | Modelo de dados suporta todos os cenários documentados na Fase 1. API cobre todos os CRUDs necessários. Equipe concorda com stack. |
+| **Entrega** | Diagrama de arquitetura offline-first, modelo ER (com cadastros mestres), contratos de API, estratégia de sync, estrutura de projeto |
+| **Critério de aceite** | Modelo suporta XV e Sevens. Estratégia offline cobre partida inteira. API cobre todos os CRUDs + sync. |
 
 ## Fase 3: Prototipação de UI (1-2 semanas, paralela com Fase 2)
 
 | Item | Detalhe |
 |------|---------|
 | **Participantes** | UI/UX, PO, Especialista Rugby |
-| **Entrega** | Protótipo de alta fidelidade navegável, design system operacional, mapa de fluxos |
-| **Critério de aceite** | PO simula operação de partida completa no protótipo. Todos os fluxos principais são navegáveis. Feedback do operador real (se possível). |
+| **Entrega** | Protótipo navegável com dois fluxos: Gestor (administrativo) e Quarto Árbitro (operação). Design system. |
+| **Critério de aceite** | PO simula: (1) cadastrar confederação/federação/clube, (2) criar partida, (3) operar partida completa, (4) encerrar e exportar. |
 
-## Fase 4: Desenvolvimento MVP (6-8 semanas)
+## Fase 4: Desenvolvimento MVP (8-10 semanas)
 
-**Sprint 1-2: Fundação**
-| Item | Detalhe |
-|------|---------|
-| **Participantes** | Front-end, Back-end, DevOps |
-| **Entrega** | Setup do projeto, CI/CD, autenticação, layout principal, componente de relógio, modelo de dados no banco |
-| **Critério de aceite** | Relógio funciona com play/pause/reset. Layout responsivo. Pipeline de deploy funcional. |
+**Sprint 1-2: Fundação + Cadastros**
+- Setup do projeto, CI/CD, autenticação (Gestor + Quarto Árbitro)
+- Layout principal responsivo
+- Cadastros mestres CRUD completo
+- Criação de partida
+- IndexedDB + Service Worker setup
 
 **Sprint 3-4: Core operacional**
-| Item | Detalhe |
-|------|---------|
-| **Participantes** | Front-end, Back-end, QA |
-| **Entrega** | Pontuação (todos os tipos), cartões (com cronômetros disciplinares), timeline de eventos (CRUD + recálculo) |
-| **Critério de aceite** | Registrar try → placar atualiza. Cartão amarelo → cronômetro de 10 min inicia e pausa com jogo. Excluir evento → placar recalcula. |
+- Relógio com play/pause/reset/edição manual
+- Pontuação (todos os tipos)
+- Timeline de eventos (CRUD + recálculo)
+- Persistência offline de estado
 
-**Sprint 5-6: Funcionalidades complementares**
-| Item | Detalhe |
-|------|---------|
-| **Participantes** | Front-end, Back-end, QA |
-| **Entrega** | Substituições (todos os tipos), relógios médicos, elenco/súmula, importação de PDF |
-| **Critério de aceite** | Substituição gera 2 linhas na timeline. Relógio médico NÃO pausa com o jogo. PDF de elenco é importado corretamente. |
+**Sprint 5-6: Cartões + Substituições + Médicos**
+- Cartões (com cronômetros disciplinares, XV e Sevens)
+- Substituições (todos os tipos)
+- Relógios médicos (tempo real)
+- Elenco/Súmula (inserção manual)
 
-**Sprint 7-8: Penais e exportação**
-| Item | Detalhe |
-|------|---------|
-| **Participantes** | Front-end, Back-end, QA |
-| **Entrega** | Disputa de penais/drops, exportação de PDF (3 formatos), fim de partida, prorrogação |
-| **Critério de aceite** | Penais: melhor de 5 + morte súbita funciona. PDFs exportam corretamente nos 3 formatos. Prorrogação inicia relógio em 00:00. |
+**Sprint 7-8: Penais + Encerramento + Exportação**
+- Disputa de penais/drops
+- Prorrogação
+- Encerramento/reabertura com log
+- Exportação de PDF (timeline + súmula) no browser
+- Critérios de aprovação do Quarto Árbitro
+
+**Sprint 9-10: Offline + Sync + Polish**
+- Sync completo (batch de operações, offline wins)
+- Testes de resiliência offline
+- Auditoria completa
+- Responsividade mobile/tablet
+- Performance tuning (< 120ms)
 
 ## Fase 5: Testes e Homologação (2 semanas)
 
 | Item | Detalhe |
 |------|---------|
 | **Participantes** | QA, PO, Especialista Rugby, toda a equipe |
-| **Entrega** | Suite de testes completa, relatório de bugs, correções, homologação com partida simulada |
-| **Critério de aceite** | Zero bugs críticos. Partida completa simulada sem problemas. PO e Especialista aprovam. |
+| **Entrega** | Suite de testes, partida simulada XV + Sevens, teste offline completo, teste de perfis |
+| **Critério de aceite** | Zero bugs críticos. Partida completa XV + Sevens simulada. Offline 80+ min testado. Perfis validados. |
 
 ## Fase 6: Implantação (1 semana)
 
 | Item | Detalhe |
 |------|---------|
 | **Participantes** | DevOps, Back-end, Front-end |
-| **Entrega** | Ambiente de produção, monitoramento, documentação de operação, backup configurado |
-| **Critério de aceite** | App acessível em produção. Sentry configurado. Backup automático funcionando. |
+| **Entrega** | Ambiente de produção, PWA publicada, monitoramento, backup |
+| **Critério de aceite** | App acessível como PWA. Sentry configurado. Backup automático. |
 
-## Fase 7: Piloto e Evolução (contínuo)
+## Fase 7: Piloto Real (2-4 semanas)
 
 | Item | Detalhe |
 |------|---------|
-| **Participantes** | Toda a equipe |
-| **Entrega** | Uso em partida real, feedback, correções, início da integração com plataformas |
-| **Critério de aceite** | App usado com sucesso em pelo menos 3 partidas reais. Feedback coletado e priorizado. |
+| **Participantes** | Toda a equipe + Quarto Árbitro real |
+| **Entrega** | Uso em partida real, feedback coletado, correções aplicadas |
+| **Critério de aceite** | App usado com sucesso em 3+ partidas reais (pelo menos 1 XV e 1 Sevens). Feedback coletado e priorizado. |
 
-**Timeline total estimada: 14-17 semanas do início ao piloto.**
+**Timeline total: 17-22 semanas do início ao piloto real.**
 
 ---
 
-# 5. ESTRUTURA FUNCIONAL — DIVISÃO EM MÓDULOS
+# 11. DIVISÃO EM MÓDULOS (ATUALIZADA)
 
 ```
 cestaria/
 ├── src/
 │   ├── modules/
-│   │   ├── match-control/          # Módulo 1: Controle de Jogo
+│   │   ├── auth/                   # Módulo 0: Autenticação
+│   │   │   ├── components/         # Login, perfil
+│   │   │   ├── store/              # Sessão, perfil ativo
+│   │   │   └── logic/              # Verificação de permissões por perfil
+│   │   │
+│   │   ├── admin/                  # Módulo 1: Cadastros Mestres (Gestor)
+│   │   │   ├── components/         # CRUD de confederação, federação, clube, árbitro, categoria
+│   │   │   ├── store/              # Estado dos cadastros
+│   │   │   └── logic/              # Validações, vínculos entre entidades
+│   │   │
+│   │   ├── match-setup/            # Módulo 2: Criação de Partida
+│   │   │   ├── components/         # Formulário de criação (com confirmação)
+│   │   │   ├── store/              # Partidas criadas
+│   │   │   └── logic/              # Validação, parametrização XV/Sevens
+│   │   │
+│   │   ├── match-control/          # Módulo 3: Controle de Jogo (ao vivo)
 │   │   │   ├── components/         # Relógio, controles de período, play/pause
 │   │   │   ├── hooks/              # useGameClock, useMatchStatus
 │   │   │   ├── store/              # Estado do jogo (período, tempo, status)
-│   │   │   └── logic/              # Regras de transição de período
+│   │   │   └── logic/              # Regras de transição, parametrização XV/Sevens
 │   │   │
-│   │   ├── scoring/                # Módulo 2: Pontuação
-│   │   │   ├── components/         # Painel de placar, botões de pontuação
-│   │   │   ├── store/              # Estado do placar (derivado de eventos)
-│   │   │   └── logic/              # Tabela de pontos, regras de penal try
+│   │   ├── scoring/                # Módulo 4: Pontuação
+│   │   ├── cards/                  # Módulo 5: Cartões + Relógios Disciplinares
+│   │   ├── substitutions/          # Módulo 6: Substituições
+│   │   ├── medical/                # Módulo 7: Relógios Médicos
+│   │   ├── roster/                 # Módulo 8: Elenco/Súmula
+│   │   ├── timeline/               # Módulo 9: Timeline de Eventos
+│   │   ├── shootout/               # Módulo 10: Penais/Drops
+│   │   ├── export/                 # Módulo 11: Exportação de PDF (no browser)
+│   │   ├── match-closure/          # Módulo 12: Encerramento/Reabertura
+│   │   │   ├── components/         # Botão encerrar, confirmação, reabertura
+│   │   │   ├── store/              # Estado de bloqueio
+│   │   │   └── logic/              # Regras de encerramento, critérios de exportação
 │   │   │
-│   │   ├── cards/                  # Módulo 3: Cartões
-│   │   │   ├── components/         # Modal de cartão, relógios disciplinares
-│   │   │   ├── store/              # Cartões ativos, relógios disciplinares
-│   │   │   └── logic/              # Lei 9, tipos de cartão, duração
-│   │   │
-│   │   ├── substitutions/          # Módulo 4: Substituições
-│   │   │   ├── components/         # Modal de substituição, seleção de jogador
-│   │   │   ├── store/              # Substituições realizadas
-│   │   │   └── logic/              # Tipos, validação, elenco ativo
-│   │   │
-│   │   ├── medical/                # Módulo 5: Relógios Médicos
-│   │   │   ├── components/         # Relógios médicos, indicadores
-│   │   │   ├── store/              # Timers médicos ativos
-│   │   │   └── logic/              # Durações por tipo, tempo real
-│   │   │
-│   │   ├── roster/                 # Módulo 6: Súmula e Elenco
-│   │   │   ├── components/         # Lista de jogadores, importação
-│   │   │   ├── store/              # Elenco da partida
-│   │   │   └── logic/              # Parser de PDF, validação
-│   │   │
-│   │   ├── timeline/               # Módulo 7: Timeline
-│   │   │   ├── components/         # Lista de eventos, edição, exclusão
-│   │   │   ├── store/              # Eventos da partida
-│   │   │   └── logic/              # Ordenação, recálculo
-│   │   │
-│   │   ├── shootout/               # Módulo 8: Penais/Drops
-│   │   │   ├── components/         # Interface de disputa
-│   │   │   ├── store/              # Estado da disputa
-│   │   │   └── logic/              # Melhor de 5, morte súbita
-│   │   │
-│   │   └── export/                 # Módulo 9: Exportação
-│   │       ├── components/         # Botões de exportação
-│   │       └── logic/              # Geração de PDF (3 formatos)
+│   │   └── audit/                  # Módulo 13: Auditoria
+│   │       ├── components/         # Visualização de logs (Gestor)
+│   │       ├── store/              # Logs locais
+│   │       └── logic/              # Interceptor de operações para log automático
+│   │
+│   ├── offline/                    # Infraestrutura offline
+│   │   ├── db/                     # Dexie.js schemas e migrations
+│   │   ├── sync/                   # Sync queue, batch upload, conflict resolution
+│   │   └── sw/                     # Service Worker config (Workbox)
 │   │
 │   ├── shared/                     # Compartilhado
-│   │   ├── components/             # Botões, modais, inputs, timers
-│   │   ├── hooks/                  # useTimer, useConfirmation
-│   │   ├── types/                  # Types globais (Match, Event, Player)
-│   │   ├── utils/                  # Formatação de tempo, cálculos
-│   │   └── constants/              # Pontuações, durações, tipos
+│   │   ├── components/             # Botões, modais, inputs, timers, indicators
+│   │   ├── hooks/                  # useTimer, useConfirmation, useOnlineStatus
+│   │   ├── types/                  # Types globais
+│   │   ├── utils/                  # Formatação, cálculos
+│   │   ├── constants/              # Pontuações, durações, configs XV/Sevens
+│   │   └── permissions/            # Guards de permissão por perfil
 │   │
 │   ├── api/                        # Camada de comunicação com back-end
-│   ├── store/                      # Store global (composto dos módulos)
+│   ├── store/                      # Store global
 │   └── app/                        # Layout principal, rotas
 │
 ├── server/                         # Back-end
-│   ├── routes/                     # Endpoints da API
-│   ├── services/                   # Lógica de negócio
-│   ├── repositories/               # Acesso a dados
-│   ├── models/                     # Definição de entidades
-│   ├── pdf/                        # Geração de PDF
-│   ├── import/                     # Importação de PDF
-│   └── audit/                      # Sistema de auditoria
+│   ├── routes/
+│   ├── services/
+│   ├── repositories/
+│   ├── models/
+│   ├── sync/                       # Endpoint de sincronização
+│   ├── audit/                      # Persistência de audit log
+│   └── middleware/                  # Auth, permissions, rate limiting
 │
 └── database/
-    ├── migrations/                 # Migrações do banco
-    └── seeds/                      # Dados de teste
+    ├── migrations/
+    └── seeds/
 ```
 
-**Princípio: cada módulo é autocontido com seus componentes, estado e lógica de negócio. A comunicação entre módulos acontece via store global e eventos.**
+---
+
+# 12. RISCOS E PONTOS CRÍTICOS (ATUALIZADOS)
+
+## 12.1 Offline de Longa Duração (RISCO #1 — NOVO)
+
+| Risco | Impacto | Mitigação |
+|-------|---------|-----------|
+| IndexedDB corrompido durante partida offline | PERDA TOTAL de dados da partida | Auto-save redundante (IndexedDB + localStorage como backup). Verificação de integridade ao iniciar. |
+| Service Worker não instalado / navegador sem suporte | App não funciona offline | Verificação na inicialização. PWA manifest obrigatório. Tela de erro clara. |
+| Bateria acaba durante partida offline | Dados em memória perdidos | Salvar em IndexedDB a CADA evento (não batch). Ao reabrir, restaura estado do último save. |
+| Sync de 80+ min de dados falha | Dados presos no dispositivo | Retry com exponential backoff. Exportação local como fallback (PDF gerado no browser). |
+| Dois dispositivos operaram a mesma partida offline | Conflito irreconciliável | MVP: lock por partida (1 operador). Indicador visual de quem está operando. |
+
+## 12.2 Dualidade XV vs. Sevens (RISCO #2 — NOVO)
+
+| Risco | Impacto | Mitigação |
+|-------|---------|-----------|
+| Parâmetros de Sevens (2 min amarelo, 7 jogadores) hardcoded | Sevens funciona errado ou XV com valores de Sevens | Configuração via `GameType.config` JSONB. NUNCA hardcoded. |
+| UI não adapta para 7 jogadores | Lista de elenco confusa | Componente de elenco parametrizado por `game_type.players` |
+| Conversão por drop kick no Sevens não diferenciada | Regra errada registrada | Tipo de evento `conversion_drop` disponível quando tipo = Sevens |
+
+## 12.3 Timers (mantido como risco alto)
+
+Mesma análise da v1, com adição:
+- **Cartão amarelo no Sevens = 2 min**, não 10. Parametrizar pelo tipo de jogo.
+
+## 12.4 Sincronização "Offline Wins"
+
+| Risco | Impacto | Mitigação |
+|-------|---------|-----------|
+| Gestor alterou cadastro mestre enquanto Quarto Árbitro estava offline | Dados mestres divergem | Cadastros mestres são readonly offline. Apenas dados de partida são "offline wins". |
+| Duas partidas diferentes sincronizam simultaneamente | Conflito de IDs | UUIDs gerados no client. Zero dependência de IDs sequenciais do servidor. |
+| Sync parcial (internet cai no meio do batch) | Dados inconsistentes no servidor | Sync transacional: tudo ou nada. Retry do batch inteiro se falhar. |
+
+## 12.5 Demais riscos (mantidos da v1)
+- UX operacional
+- Consistência de dados / recálculo
+- Exportação de PDF
+- Integração futura (Sporti, Sul-Americana)
 
 ---
 
-# 6. RISCOS E PONTOS CRÍTICOS
+# 13. STACK RECOMENDADA (REFINADA)
 
-## 6.1 Regras do Rugby
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| Regras mudam entre temporadas (ex: vermelho temporário é experimental) | Features podem ficar obsoletas | Configuração de regras por competição, não hardcoded |
-| Competições locais podem ter regras diferentes (duração de tempo, número de substituições) | App inflexível = inutilizável em certos contextos | Parâmetros configuráveis por partida/competição |
-| Penal try tem regras específicas que são frequentemente mal implementadas | Dados inconsistentes | Documentar e testar explicitamente |
-
-## 6.2 Timers — Tempo de Jogo vs. Tempo Real
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| **Confusão entre os dois tipos de timer** é o risco #1 do projeto | Cartão amarelo que não pausa = 10 min reais em vez de 10 min de jogo. Relógio médico que pausa = jogador ganha tempo extra indevido | Abstração clara: `GameTimeTimer` vs `RealTimeTimer`. Testes unitários extensivos. |
-| Drift de cronômetro em sessões longas | Relógio impreciso após 80+ minutos | `requestAnimationFrame` com `performance.now()` e correção de drift |
-| Múltiplos timers simultâneos (relógio + 3 disciplinares + 2 médicos) | Performance, confusão visual | Benchmark de 10 timers simultâneos. UI clara com agrupamento. |
-| Navegador minimizado ou tab em background | `setInterval` é throttled em background tabs | Service Worker para manter timers, ou salvar estado e recalcular ao focar |
-
-## 6.3 UX Operacional
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| Operador clica no botão errado sob pressão | Evento incorreto registrado, placar errado | Ações aditivas sem confirmação MAS com undo visível (toast com "Desfazer" por 5s) |
-| Tela poluída com muita informação | Operador perde referência visual | Hierarquia visual rigorosa, informação secundária colapsável |
-| Operador não percebe em qual período está | Registra evento no período errado | Indicador de período sempre visível, com cor diferenciada |
-| Operador precisa corrigir evento passado | Fluxo de edição complexo quebra ritmo | Edição inline na timeline, com validação imediata |
-
-## 6.4 Consistência de Dados
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| Placar diverge da soma de eventos | Dados oficiais incorretos | Placar SEMPRE derivado. Nunca campo armazenado independente. |
-| Edição de evento não recalcula corretamente | Placar errado | Função de recálculo com testes para todos os cenários |
-| Exclusão de substituição não reverte elenco ativo | Jogador aparece como ativo e inativo | Cascade logic: excluir substituição → reverter estado do elenco |
-| Dois operadores editando a mesma partida | Conflito de dados | MVP: lock por partida (1 operador por vez). Futuro: CRDT ou OT |
-
-## 6.5 Exportação
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| PDF com layout quebrado em muitos eventos | Documento ilegível | Paginação automática, teste com partida de 50+ eventos |
-| Dados faltantes no PDF | Relatório incompleto | Validação pré-exportação: avisar se elenco incompleto |
-| Performance de geração de PDF no servidor | Timeout em partidas longas | Geração assíncrona com notificação quando pronto |
-
-## 6.6 Integração Futura
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| API da plataforma de competição muda | Integração quebra | Adapter pattern: camada de abstração entre o app e APIs externas |
-| Formato de dados externo não é compatível | Perda de informação na importação | Mapeamento explícito com validação e log de campos ignorados |
-| IDs diferentes entre sistemas | Duplicação ou perda de referência | UUIDs internos + tabela de mapeamento de IDs externos |
-
-## 6.7 Offline / Sincronização
-
-| Risco | Impacto | Mitigação |
-|-------|---------|-----------|
-| Perda de internet durante partida ao vivo | Dados não salvos no servidor | Service Worker + IndexedDB: tudo local-first, sync quando online |
-| Conflito ao sincronizar pós-reconexão | Dados duplicados ou perdidos | Fila de operações offline com timestamps, resolve conflitos por "last write wins" ou merge manual |
-| App fecha acidentalmente (bateria, crash) | Perda de dados da partida | Auto-save a cada evento no IndexedDB. Ao reabrir, recupera estado completo. |
-
----
-
-# 7. RECOMENDAÇÃO DE STACK
-
-## 7.1 Stack Recomendada
+## 13.1 Stack Principal
 
 | Camada | Tecnologia | Justificativa |
 |--------|-----------|---------------|
-| **Front-end** | **Next.js 14+ (App Router) + React 18+** | SSR para SEO da landing page, mas o core é SPA (operação ao vivo). React é o ecossistema mais maduro para UIs complexas com estado. |
-| **Linguagem** | **TypeScript** (front e back) | Type safety é crítica quando o sistema tem muitos tipos de evento, cada um com atributos diferentes. Compartilhar tipos entre front e back elimina erros. |
-| **Estado (front)** | **Zustand** | Mais leve que Redux, mais simples, excelente para múltiplas stores (uma por módulo). Middleware para persistência local fácil de implementar. |
-| **UI Components** | **shadcn/ui + Tailwind CSS** | Componentes acessíveis (Radix), customizáveis, sem vendor lock-in. Tailwind para prototipagem rápida com design system consistente. |
-| **Back-end** | **Node.js + Fastify** (ou **tRPC** se quiser type-safe end-to-end) | Fastify é mais rápido que Express, tipado, com ecossistema maduro. tRPC elimina a camada de API contract manual se front e back são TypeScript. |
-| **Banco de dados** | **PostgreSQL** | Relacional robusto, JSONB para metadata flexível (motivo de cartão, tipo de substituição), excelente para queries de agregação. |
-| **ORM** | **Drizzle ORM** | Type-safe, leve, migrations integradas, SQL puro quando necessário. Mais previsível que Prisma para queries complexas. |
-| **Autenticação** | **Auth.js (NextAuth v5)** ou **Clerk** | Auth.js se quiser controle total. Clerk se quiser zero-config com dashboard pronto. Para MVP, Clerk acelera. |
-| **Geração de PDF** | **@react-pdf/renderer** ou **Puppeteer** | react-pdf para PDFs simples e rápidos. Puppeteer se precisar renderizar HTML complexo como PDF. |
-| **Persistência offline** | **IndexedDB via Dexie.js** | Dexie é a abstração mais madura para IndexedDB, suporta queries complexas e versionamento de schema. |
-| **Service Worker** | **Workbox** | Configuração de cache strategies para offline-first, integração com Next.js via next-pwa. |
-| **Testes** | **Vitest + Testing Library + Playwright** | Vitest para unit/integration (rápido, compatível com Vite). Playwright para E2E (cross-browser). |
-| **CI/CD** | **GitHub Actions** | Grátis para repos públicos, generoso para privados. Integração nativa com o repo. |
-| **Monitoramento** | **Sentry** | Free tier generoso, captura erros com contexto, performance monitoring. |
-| **Linting** | **Biome** (ou ESLint + Prettier) | Biome é mais rápido e unifica linter + formatter. ESLint se quiser ecossistema mais maduro. |
+| **Front-end** | **Next.js 14+ (App Router)** | PWA com SSR para landing. Core operacional é SPA client-side. |
+| **Linguagem** | **TypeScript** | Type safety é crítica com XV/Sevens parametrizáveis e tipos de evento variados. |
+| **Estado** | **Zustand** com middleware de persistência | Stores por módulo. Middleware Dexie.js para auto-save em IndexedDB. |
+| **UI** | **shadcn/ui + Tailwind CSS** | Componentes acessíveis, customizáveis, responsivos. |
+| **Offline DB** | **Dexie.js (IndexedDB)** | Abstração madura. Suporta queries, versionamento, sync primitives. |
+| **PWA** | **Workbox + next-pwa** | Service Worker para cache de assets e funcionamento offline completo. |
+| **PDF (browser)** | **@react-pdf/renderer** | Gera PDF no navegador sem servidor. Essencial para offline. |
+| **Back-end** | **Next.js API Routes + tRPC** | Type-safe end-to-end. Mesmo deploy que o front. Simplifica infra. |
+| **Banco** | **PostgreSQL** (via Neon ou Supabase) | JSONB para config de tipo de jogo. Relacional para integridade. |
+| **ORM** | **Drizzle ORM** | Type-safe, leve, SQL puro quando necessário. |
+| **Auth** | **Auth.js (NextAuth v5)** | 2 perfis (Gestor + Quarto Árbitro). JWT para operação offline. |
+| **Testes** | **Vitest + Testing Library + Playwright** | Unit + integration + E2E. |
+| **CI/CD** | **GitHub Actions** | Lint + typecheck + testes em cada PR. |
+| **Monitoramento** | **Sentry** | Erros + performance. Free tier generoso. |
 
-## 7.2 Hospedagem — Opções com Baixo Custo / Freemium
+## 13.2 Hospedagem (Baixo Custo)
 
-| Componente | Opção 1 (Menor custo) | Opção 2 (Mais robusto) |
-|-----------|----------------------|----------------------|
-| **Front-end** | **Vercel** (free tier: 100GB bandwidth) | **Cloudflare Pages** (free: unlimited bandwidth) |
-| **Back-end** | **Railway** (free tier: $5 crédito/mês) | **Fly.io** (free tier: 3 VMs) |
-| **Banco de dados** | **Supabase** (free: 500MB, 50K rows) | **Neon** (free: 512MB, branching) |
-| **Armazenamento (logos, PDFs)** | **Cloudflare R2** (free: 10GB + 10M ops) | **Supabase Storage** (free: 1GB) |
+| Componente | Recomendação | Custo |
+|-----------|-------------|-------|
+| **App (front + API)** | **Vercel** | Free (hobby) ou $20/mês (pro) |
+| **Banco** | **Neon PostgreSQL** | Free (512MB) |
+| **Armazenamento** | **Cloudflare R2** | Free (10GB) |
 
-**Custo estimado para MVP:** R$ 0 a R$ 50/mês (free tiers cobrem o uso inicial)
+**Custo MVP: R$ 0/mês** (free tiers)
+**Custo produção: R$ 100-200/mês**
 
-**Custo em produção real (100+ partidas/mês):** R$ 100-300/mês
+## 13.3 Por que JWT para auth offline
 
-## 7.3 Estratégia de Deploy
-
-```
-main branch ──► build automático ──► deploy para staging
-                                          │
-                                     QA + PO validam
-                                          │
-                                   tag release ──► deploy para produção
-```
-
-- **Feature branches** para cada story/módulo
-- **PR review obrigatório** (mínimo 1 aprovação)
-- **CI roda em cada PR:** lint + typecheck + testes
-- **Deploy automático para staging** em merge para main
-- **Deploy para produção** via tag de release (manual, com checklist)
-- **Rollback:** Vercel/Cloudflare mantém deploys anteriores, rollback em 1 clique
-
-## 7.4 Alternativa Simplificada (Solo Developer / Time de 2)
-
-Se a equipe for muito pequena, considere:
-
-| Camada | Alternativa | Tradeoff |
-|--------|------------|----------|
-| Full-stack | **Next.js + Server Actions + Drizzle + PostgreSQL** | Tudo em um único projeto Next.js. Menos separação, mais velocidade. |
-| Banco | **SQLite via Turso** | Mais simples, edge-ready, mas menos poder que PostgreSQL. |
-| Hospedagem | **Vercel (tudo)** | Front + API + DB (via Vercel Postgres). Um provider, zero DevOps. |
-| Auth | **Clerk** | Zero config, pronto em 30 min. |
+O Quarto Árbitro pode ficar 80+ min sem internet. Sessões baseadas em cookie/servidor expirariam. JWT com refresh token de longa duração permite:
+- Autenticação verificável sem servidor
+- Permissões embarcadas no token
+- Renovação quando reconectar
 
 ---
 
-# 8. RESUMO EXECUTIVO
+# 14. INTEGRAÇÕES FUTURAS (PÓS-MVP)
 
-## O que é o Cestária?
-Mesa de controle de rugby para operação ao vivo — registra placar, eventos, cronômetros, súmula e exporta relatórios.
+## Sporti
 
-## Equipe mínima?
-4 pessoas dedicadas + 1 parcial.
+| Direção | Dados | Formato |
+|---------|-------|---------|
+| **Import** | Clubes, atletas, comissão técnica, árbitros | API REST (a definir) |
+| **Export** | Registros da partida (eventos, placar, súmula) | API REST (a definir) |
 
-## Quanto tempo?
-14-17 semanas da concepção ao piloto.
+## Sistema da Sul-Americana
 
-## Quanto custa?
-Infra: R$ 0-50/mês no MVP. O maior custo é o tempo da equipe.
+| Direção | Dados | Formato |
+|---------|-------|---------|
+| **Import** | Clubes, atletas, comissão técnica, árbitros | API REST (a definir) |
+| **Export** | Registros da partida (eventos, placar, súmula) | API REST (a definir) |
 
-## Qual é o maior risco?
-A dualidade de cronômetros (tempo de jogo vs. tempo real). Se a abstração não for feita corretamente no início, contamina todo o sistema.
-
-## Por onde começar?
-1. Documentar TODAS as regras operacionais do rugby com o especialista
-2. Validar wireframes com operador real
-3. Só então escrever código
+**Arquitetura preparada:** Adapter pattern com interface comum. Quando as APIs forem definidas, basta implementar o adapter específico sem alterar o core do sistema.
 
 ---
 
-*Documento gerado em 15/03/2026 como entrega da fase de planejamento de equipe do projeto Cestária.*
+# 15. OBSERVABILIDADE DO PILOTO
+
+| Métrica | Meta | Como medir |
+|---------|------|-----------|
+| Latência de interação | < 120ms | Performance Observer API no browser |
+| Taxa de falha | Baixa (< 1%) | Sentry error tracking |
+| Sincronização | 100% dos eventos sync em < 120s | Log de sync queue com timestamps |
+| Perda de evento | Zero | Comparação IndexedDB local vs PostgreSQL após sync |
+| Disponibilidade offline | 100% das features core | Teste em partida real sem internet |
+
+---
+
+# 16. RESUMO EXECUTIVO (ATUALIZADO)
+
+| Pergunta | Resposta |
+|----------|----------|
+| O que é? | Mesa de controle de rugby para XV e Sevens, operada pelo Quarto Árbitro |
+| MVP inclui? | Tudo exceto importação PDF e integrações API |
+| Quem opera? | Quarto Árbitro (operação) + Gestor (administração) |
+| Funciona offline? | Sim, por partida inteira. Sync ao reconectar. |
+| Equipe mínima? | 4 dedicadas + 1 parcial |
+| Timeline? | 17-22 semanas até piloto real |
+| Custo de infra? | R$ 0/mês no MVP |
+| Maior risco? | Offline de longa duração + dualidade de cronômetros |
+| Critério de sucesso? | Piloto real: 3+ partidas (XV + Sevens) sem falhas |
+
+---
+
+*Documento atualizado em 15/03/2026 — v2.0 com respostas do stakeholder.*
