@@ -11,6 +11,10 @@
 - JWT com refresh token longo para auth offline
 - UUIDs gerados no client para operação offline
 - Cadastros mestres são readonly offline, apenas dados de partida são "offline wins"
+- App fica em /app (Next.js project). Rodar `cd app && pnpm dev` para iniciar.
+- shadcn/ui usa base-ui (não Radix). Select.onValueChange recebe `string | null`, precisa `v ?? ""`
+- Não usar `asChild` — não existe no base-ui. Usar state controlado para dialogs.
+- Google Fonts não disponível em build offline — usar font-sans do sistema
 ---
 
 ## 2026-03-15 - PLAN-001
