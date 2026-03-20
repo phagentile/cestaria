@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0-alpine
+    container_name: rugby-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-rugby_control}
+      MYSQL_USER: ${DB_USER:-rugby_user}
+      MYSQL_PASSWORD: ${DB_USER_PASSWORD:-rugby_password}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rugby_network
+
+  # Node.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rugby-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: mysql
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-rugby_control}
+      DB_PORT: 3306
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      JWT_EXPIRY: 24h
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server.js:/app/server.js
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - rugby_network
+    restart: unless-stopped
+
+  # Optional: Redis for caching (future use)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: rugby-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - rugby_network
+  #   restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  rugby_network:
+    driver: bridge
+
+# Usage:
+# Development:   docker-compose up
+# Production:    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Stop:          docker-compose down
+# Logs:          docker-compose logs -f app
+# Shell:         docker-compose exec app sh
+# DB Shell:      docker-compose exec mysql mysql -u root -p rugby_control
