@@ -71,9 +71,9 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     const connection = await pool.getConnection();
 
-    // Busca usuário (em produção, usar bcrypt para senha)
+    // Busca usuário (em produção, usar bcrypt para validação)
     const [users] = await connection.query(
-      'SELECT id, email, full_name, role FROM users WHERE email = ? AND password = ?',
+      'SELECT id, email, full_name, role FROM users WHERE email = ? AND password_hash = ?',
       [email, password]
     );
 
