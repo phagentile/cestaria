@@ -44,6 +44,8 @@ export function MatchInfoPanel() {
     { label: "Competicao", value: match.competitionName ?? "—" },
   ];
 
+  const entities = match.organizingEntities ?? [];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-4 py-3 animate-fade-in-up">
       {/* Match Info */}
@@ -64,6 +66,23 @@ export function MatchInfoPanel() {
             </div>
           ))}
         </div>
+        {entities.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-[var(--border)]">
+            <div className="text-[10px] text-[var(--muted-foreground)] uppercase mb-1">
+              Entidades Organizadoras
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {entities.map((e) => (
+                <span
+                  key={e}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--muted)] text-[var(--foreground)] font-medium"
+                >
+                  {e}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Officials */}

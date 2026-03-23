@@ -99,7 +99,7 @@ export default function MatchControlPage() {
         {/* Left: Score + Actions */}
         <div className="lg:w-[420px] border-r border-[var(--border)] flex flex-col">
           <ScorePanel />
-          {!isLocked && <ActionPanel />}
+          <ActionPanel />
           <TimerPanel />
         </div>
 
