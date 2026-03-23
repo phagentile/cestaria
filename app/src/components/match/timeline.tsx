@@ -17,14 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { EventEditDialog } from "@/components/match/event-edit-dialog";
 import {
   Pencil,
   Trash2,
@@ -104,13 +97,10 @@ function EventIcon({ type }: { type: EventType }) {
 }
 
 export function Timeline() {
-  const { match, events, roster, editEvent, deleteEvent } =
-    useMatchStore();
+  const { match, events, roster, deleteEvent } = useMatchStore();
   const { clubs } = useAdminStore();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<MatchEvent | null>(null);
-  const [editMinute, setEditMinute] = useState("");
-  const [editSecond, setEditSecond] = useState("");
 
   if (!match) return null;
 
@@ -133,21 +123,6 @@ export function Timeline() {
   // Running score
   let runningHome = 0;
   let runningAway = 0;
-
-  const handleEdit = (event: MatchEvent) => {
-    setEditingEvent(event);
-    setEditMinute(String(event.minute));
-    setEditSecond(String(event.second));
-  };
-
-  const confirmEdit = async () => {
-    if (!editingEvent) return;
-    await editEvent(editingEvent.id, {
-      minute: parseInt(editMinute) || 0,
-      second: parseInt(editSecond) || 0,
-    });
-    setEditingEvent(null);
-  };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
@@ -249,6 +224,11 @@ export function Timeline() {
                         Tipo: {meta.substitutionType}
                       </div>
                     )}
+                    {meta?.description && (
+                      <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
+                        {meta.description}
+                      </div>
+                    )}
                   </div>
 
                   {/* Running score */}
@@ -264,8 +244,9 @@ export function Timeline() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleEdit(event)}
+                        className="h-6 w-6 p-0 hover:bg-[var(--accent)]"
+                        title="Editar evento"
+                        onClick={() => setEditingEvent(event)}
                       >
                         <Pencil className="w-3 h-3" />
                       </Button>
@@ -273,6 +254,7 @@ export function Timeline() {
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-destructive"
+                        title="Excluir evento"
                         onClick={() => setDeleteId(event.id)}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -286,40 +268,11 @@ export function Timeline() {
         })}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog
-        open={!!editingEvent}
-        onOpenChange={() => setEditingEvent(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Evento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Minuto</Label>
-                <Input
-                  type="number"
-                  value={editMinute}
-                  onChange={(e) => setEditMinute(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Segundo</Label>
-                <Input
-                  type="number"
-                  value={editSecond}
-                  onChange={(e) => setEditSecond(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button className="w-full" onClick={confirmEdit}>
-              Salvar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Dialog — completo por tipo de evento */}
+      <EventEditDialog
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

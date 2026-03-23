@@ -95,6 +95,9 @@ interface MatchState {
 
   // Medical clocks
   startMedicalClock: (eventId: string, rosterId: string, clubId: string, clockType: MedicalClockType) => Promise<void>;
+  // Edit clock remaining time (for manual correction)
+  editDisciplinaryClock: (clockId: string, newRemainingSeconds: number) => Promise<void>;
+  editMedicalClock: (clockId: string, newRemainingSeconds: number) => Promise<void>;
 
   // Disciplinary tick (called when game clock ticks)
   tickDisciplinaryClocks: (deltaSeconds: number) => void;
@@ -599,6 +602,37 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     await db.medicalClocks.add(clock);
     set((state) => ({
       medicalClocks: [...state.medicalClocks, clock],
+    }));
+  },
+
+  // Edit clock remaining time (operator manual correction)
+  editDisciplinaryClock: async (clockId: string, newRemainingSeconds: number) => {
+    const { disciplinaryClocks } = get();
+    const clock = disciplinaryClocks.find(c => c.id === clockId);
+    if (!clock) return;
+    const newElapsed = Math.max(0, clock.durationSeconds - newRemainingSeconds);
+    const updated = { ...clock, elapsedGameSeconds: newElapsed };
+    await db.disciplinaryClocks.put(updated);
+    set((state) => ({
+      disciplinaryClocks: state.disciplinaryClocks.map(c =>
+        c.id === clockId ? updated : c
+      ),
+    }));
+  },
+
+  editMedicalClock: async (clockId: string, newRemainingSeconds: number) => {
+    const { medicalClocks } = get();
+    const clock = medicalClocks.find(c => c.id === clockId);
+    if (!clock) return;
+    // Adjust startedAt so that (now - startedAt) / 1000 = durationSeconds - newRemainingSeconds
+    const newElapsed = Math.max(0, clock.durationSeconds - newRemainingSeconds);
+    const newStartedAt = new Date(Date.now() - newElapsed * 1000).toISOString();
+    const updated = { ...clock, startedAt: newStartedAt };
+    await db.medicalClocks.put(updated);
+    set((state) => ({
+      medicalClocks: state.medicalClocks.map(c =>
+        c.id === clockId ? updated : c
+      ),
     }));
   },
 
