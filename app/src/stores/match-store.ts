@@ -21,6 +21,18 @@ import type {
 import { EVENT_POINTS, MEDICAL_DURATIONS } from '@/types';
 import { db } from '@/lib/db';
 
+// Pendências de resolução quando um relógio expira
+export type ClockPendingType = 'disciplinary_expired' | 'medical_expired';
+
+export interface ClockPending {
+  type: ClockPendingType;
+  clockId: string;
+  rosterId: string;   // atleta que estava fora
+  clubId: string;
+  clockSubtype: CardType | MedicalClockType; // 'yellow'|'temp_red' ou 'blood'|'hia'|'blood_hia'
+}
+
+
 interface MatchState {
   // Current match data
   match: Match | null;
@@ -35,6 +47,10 @@ interface MatchState {
   // Computed
   homeScore: number;
   awayScore: number;
+
+  // Clock resolution pendencies (shown as popups in UI)
+  clockPendings: ClockPending[];
+  dismissPending: (clockId: string) => void;
 
   // Match lifecycle
   loadMatch: (matchId: string) => Promise<void>;
@@ -85,6 +101,13 @@ interface MatchState {
   // Medical tick (called on real time)
   checkMedicalClocks: () => void;
 
+  // Clock resolutions (called from UI popups)
+  // Disciplinary: atleta retorna (amarelo) ou é substituído (temp_red → passa inRosterId)
+  returnFromCard: (clockId: string, inRosterId?: string) => Promise<void>;
+  // Medical: atleta retorna ao campo (returnPlayer=true, inRosterId=undefined)
+  //          ou mantém substituição (returnPlayer=false, inRosterId=quem vai entrar se necessário)
+  resolveMedical: (clockId: string, keepSubstitution: boolean, inRosterId?: string) => Promise<void>;
+
   // Shootout
   addShootoutKick: (clubId: string, result: ShootoutResult, rosterId?: string) => Promise<void>;
 
@@ -127,6 +150,13 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
   gameConfig: null,
   homeScore: 0,
   awayScore: 0,
+  clockPendings: [],
+
+  dismissPending: (clockId: string) => {
+    set((state) => ({
+      clockPendings: state.clockPendings.filter((p) => p.clockId !== clockId),
+    }));
+  },
 
   loadMatch: async (matchId: string) => {
     const match = await db.matches.get(matchId);
@@ -575,6 +605,8 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
   // Disciplinary tick
   tickDisciplinaryClocks: (deltaSeconds: number) => {
     set((state) => {
+      const newPendings: ClockPending[] = [];
+
       const updated = state.disciplinaryClocks.map(clock => {
         if (clock.status !== 'active') return clock;
 
@@ -582,6 +614,19 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
         if (newElapsed >= clock.durationSeconds) {
           const expired = { ...clock, elapsedGameSeconds: clock.durationSeconds, status: 'expired' as const };
           db.disciplinaryClocks.put(expired);
+
+          // Add pending only if not already in list
+          const alreadyPending = state.clockPendings.some(p => p.clockId === clock.id);
+          if (!alreadyPending) {
+            newPendings.push({
+              type: 'disciplinary_expired',
+              clockId: clock.id,
+              rosterId: clock.rosterId,
+              clubId: clock.clubId,
+              clockSubtype: clock.clockType,
+            });
+          }
+
           return expired;
         }
         // Persist every ~5 seconds
@@ -590,7 +635,13 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
         }
         return { ...clock, elapsedGameSeconds: newElapsed };
       });
-      return { disciplinaryClocks: updated };
+
+      return {
+        disciplinaryClocks: updated,
+        clockPendings: newPendings.length > 0
+          ? [...state.clockPendings, ...newPendings]
+          : state.clockPendings,
+      };
     });
   },
 
@@ -598,18 +649,165 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
   checkMedicalClocks: () => {
     const now = Date.now();
     set((state) => {
+      const newPendings: ClockPending[] = [];
+
       const updated = state.medicalClocks.map(clock => {
         if (clock.status !== 'active') return clock;
         const elapsed = (now - new Date(clock.startedAt).getTime()) / 1000;
         if (elapsed >= clock.durationSeconds) {
           const expired = { ...clock, status: 'expired' as const };
           db.medicalClocks.put(expired);
+
+          // Add pending only if not already in list
+          const alreadyPending = state.clockPendings.some(p => p.clockId === clock.id);
+          if (!alreadyPending) {
+            newPendings.push({
+              type: 'medical_expired',
+              clockId: clock.id,
+              rosterId: clock.rosterId,
+              clubId: clock.clubId,
+              clockSubtype: clock.clockType,
+            });
+          }
+
           return expired;
         }
         return clock;
       });
-      return { medicalClocks: updated };
+
+      return {
+        medicalClocks: updated,
+        clockPendings: newPendings.length > 0
+          ? [...state.clockPendings, ...newPendings]
+          : state.clockPendings,
+      };
     });
+  },
+
+  // ─── Clock Resolutions ───────────────────────────────────────
+
+  // Retorno de cartão disciplinar expirado:
+  //   - Amarelo / Temp Red e atleta volta → card_return na timeline, atleta fica ativo
+  //   - Temp Red e atleta é substituído → substitution_out + substitution_in (como substituição permanente)
+  returnFromCard: async (clockId: string, inRosterId?: string) => {
+    const { match, roster, addEvent, updateRosterEntry, dismissPending, disciplinaryClocks } = get();
+    if (!match) return;
+
+    const clock = disciplinaryClocks.find(c => c.id === clockId);
+    if (!clock) return;
+
+    const outPlayer = roster.find(r => r.id === clock.rosterId);
+    const minute = Math.floor(match.clockSeconds / 60);
+    const second = Math.floor(match.clockSeconds % 60);
+    const baseEvent = { matchId: match.id, clubId: clock.clubId, minute, second, period: match.period, points: 0 };
+
+    if (clock.clockType === 'yellow') {
+      // Amarelo: atleta retorna automaticamente
+      await updateRosterEntry(clock.rosterId, { active: true });
+      await addEvent({
+        ...baseEvent,
+        rosterId: clock.rosterId,
+        eventType: 'card_return',
+        metadata: { cardType: 'yellow', playerName: outPlayer?.playerName, shirtNumber: outPlayer?.shirtNumber },
+      });
+    } else if (clock.clockType === 'temp_red') {
+      if (inRosterId) {
+        // Vermelho temp: substituição permanente — outPlayer sai, inPlayer entra
+        const inPlayer = roster.find(r => r.id === inRosterId);
+        await updateRosterEntry(clock.rosterId, { active: false });
+        await updateRosterEntry(inRosterId, { active: true });
+        await addEvent({
+          ...baseEvent,
+          rosterId: clock.rosterId,
+          eventType: 'substitution_out',
+          metadata: { substitutionType: 'temporary', cardType: 'temp_red' },
+        });
+        await addEvent({
+          ...baseEvent,
+          rosterId: inRosterId,
+          eventType: 'substitution_in',
+          metadata: { substitutionType: 'temporary', replacedRosterId: clock.rosterId },
+        });
+      } else {
+        // Sem substituto disponível: retorna ao campo mesmo assim
+        await updateRosterEntry(clock.rosterId, { active: true });
+        await addEvent({
+          ...baseEvent,
+          rosterId: clock.rosterId,
+          eventType: 'card_return',
+          metadata: { cardType: 'temp_red', playerName: outPlayer?.playerName, shirtNumber: outPlayer?.shirtNumber },
+        });
+      }
+    }
+
+    dismissPending(clockId);
+  },
+
+  // Resolução de relógio médico expirado:
+  //   keepSubstitution=true → substituto fica, outPlayer é eliminado do jogo
+  //   keepSubstitution=false → outPlayer retorna ao campo (médico liberou)
+  //     - inRosterId: se fornecido, quem saiu temporariamente (outPlayer) entra de volta
+  //       e inRosterId (substituto) sai
+  resolveMedical: async (clockId: string, keepSubstitution: boolean, inRosterId?: string) => {
+    const { match, roster, addEvent, updateRosterEntry, dismissPending, medicalClocks } = get();
+    if (!match) return;
+
+    const clock = medicalClocks.find(c => c.id === clockId);
+    if (!clock) return;
+
+    const outPlayer = roster.find(r => r.id === clock.rosterId);
+    const minute = Math.floor(match.clockSeconds / 60);
+    const second = Math.floor(match.clockSeconds % 60);
+    const baseEvent = { matchId: match.id, clubId: clock.clubId, minute, second, period: match.period, points: 0 };
+
+    if (keepSubstitution) {
+      // Manter substituição por motivo de saúde — outPlayer já está fora, nada muda no campo
+      // Apenas registrar evento informativo
+      await addEvent({
+        ...baseEvent,
+        rosterId: clock.rosterId,
+        eventType: 'blood_time_end',
+        metadata: {
+          clockType: clock.clockType,
+          kept: true,
+          playerName: outPlayer?.playerName,
+          shirtNumber: outPlayer?.shirtNumber,
+        },
+      });
+    } else {
+      // Atleta liberado: retorna ao campo
+      // Se há substituto identificado, ele sai e outPlayer entra de volta
+      await updateRosterEntry(clock.rosterId, { active: true });
+      await addEvent({
+        ...baseEvent,
+        rosterId: clock.rosterId,
+        eventType: 'medical_return',
+        metadata: {
+          clockType: clock.clockType,
+          playerName: outPlayer?.playerName,
+          shirtNumber: outPlayer?.shirtNumber,
+          replacedRosterId: inRosterId,
+        },
+      });
+
+      if (inRosterId) {
+        // Substituto temporário sai
+        await updateRosterEntry(inRosterId, { active: false });
+        const subPlayer = roster.find(r => r.id === inRosterId);
+        await addEvent({
+          ...baseEvent,
+          rosterId: inRosterId,
+          eventType: 'substitution_out',
+          metadata: {
+            substitutionType: clock.clockType,
+            replacedBy: clock.rosterId,
+            playerName: subPlayer?.playerName,
+          },
+        });
+      }
+    }
+
+    dismissPending(clockId);
   },
 
   // Shootout

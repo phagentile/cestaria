@@ -33,6 +33,8 @@ import {
   X as XIcon,
   ArrowRightLeft,
   AlertTriangle,
+  UserCheck,
+  Heart,
 } from "lucide-react";
 
 // Circle color by event type
@@ -50,6 +52,8 @@ const EVENT_CIRCLE_COLOR: Partial<Record<EventType, string>> = {
   temp_red_card: "bg-[var(--rugby-red-card)]/70 text-white",
   substitution_out: "bg-[var(--rugby-substitution)] text-white",
   substitution_in: "bg-[var(--rugby-substitution)] text-white",
+  card_return: "bg-[var(--rugby-try)] text-white",
+  medical_return: "bg-cyan-500 text-white",
 };
 
 const EVENT_LINE_COLOR: Partial<Record<EventType, string>> = {
@@ -66,6 +70,8 @@ const EVENT_LINE_COLOR: Partial<Record<EventType, string>> = {
   temp_red_card: "border-[var(--rugby-red-card)]/70",
   substitution_out: "border-[var(--rugby-substitution)]",
   substitution_in: "border-[var(--rugby-substitution)]",
+  card_return: "border-[var(--rugby-try)]",
+  medical_return: "border-cyan-500",
 };
 
 function EventIcon({ type }: { type: EventType }) {
@@ -88,6 +94,10 @@ function EventIcon({ type }: { type: EventType }) {
     case "red_card":
     case "temp_red_card":
       return <AlertTriangle className="w-3.5 h-3.5" />;
+    case "card_return":
+      return <UserCheck className="w-3.5 h-3.5" />;
+    case "medical_return":
+      return <Heart className="w-3.5 h-3.5" />;
     default:
       return <CircleDot className="w-3.5 h-3.5" />;
   }

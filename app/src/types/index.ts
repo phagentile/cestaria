@@ -71,6 +71,8 @@ export type EventType =
   | 'temp_red_card'
   | 'substitution_out'
   | 'substitution_in'
+  | 'card_return'           // atleta retorna ao campo após amarelo/temp_red
+  | 'medical_return'        // atleta retorna ao campo após sangue/HIA
   | 'blood_time_start'
   | 'blood_time_end'
   | 'hia_start'
@@ -100,6 +102,8 @@ export const EVENT_LABELS: Record<EventType, string> = {
   temp_red_card: 'Vermelho Temporário',
   substitution_out: 'Saída',
   substitution_in: 'Entrada',
+  card_return: 'Retorno de Cartão',
+  medical_return: 'Retorno Médico',
   blood_time_start: 'Início Sangue',
   blood_time_end: 'Fim Sangue',
   hia_start: 'Início HIA',

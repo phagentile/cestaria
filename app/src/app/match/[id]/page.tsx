@@ -14,6 +14,7 @@ import { Timeline } from "@/components/match/timeline";
 import { RosterPanel } from "@/components/match/roster-panel";
 import { ShootoutPanel } from "@/components/match/shootout-panel";
 import { ExportPanel } from "@/components/match/export-panel";
+import { ClockResolutionPopups } from "@/components/match/clock-resolution-popups";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function MatchControlPage() {
@@ -86,6 +87,9 @@ export default function MatchControlPage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
+      {/* Popups de resolução de relógios (disciplinar e médico) */}
+      <ClockResolutionPopups />
+
       <MatchHeader />
 
       {/* Match Info + Officials (2-column grid) */}
