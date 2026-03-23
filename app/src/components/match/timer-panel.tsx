@@ -89,9 +89,6 @@ export function TimerPanel() {
         {/* Disciplinary Clocks */}
         {activeDisciplinary.length > 0 && (
           <div>
-            <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1 uppercase tracking-wide">
-              Relógios Disciplinares (tempo de jogo)
-            </div>
             <div className="space-y-1">
               {activeDisciplinary.map((clock) => {
                 const player = getPlayer(clock.rosterId);
@@ -144,9 +141,6 @@ export function TimerPanel() {
         {/* Medical Clocks */}
         {activeMedical.length > 0 && (
           <div>
-            <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1 uppercase tracking-wide">
-              Relógios Médicos (tempo real)
-            </div>
             <div className="space-y-1">
               {activeMedical.map((clock) => {
                 const player = getPlayer(clock.rosterId);

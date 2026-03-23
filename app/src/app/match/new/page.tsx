@@ -39,6 +39,7 @@ export default function NewMatchPage() {
   const [gameTypeId, setGameTypeId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [competitionName, setCompetitionName] = useState("");
+  const [organizingEntities, setOrganizingEntities] = useState<string[]>([]);
   const [venue, setVenue] = useState("");
   const [matchDate, setMatchDate] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -62,6 +63,7 @@ export default function NewMatchPage() {
       gameTypeId,
       categoryId: categoryId || undefined,
       competitionName: competitionName || undefined,
+      organizingEntities: organizingEntities.length > 0 ? organizingEntities : undefined,
       venue: venue || undefined,
       matchDate: matchDate || undefined,
     });
@@ -157,13 +159,44 @@ export default function NewMatchPage() {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label>Competicao</Label>
               <Input
                 value={competitionName}
                 onChange={(e) => setCompetitionName(e.target.value)}
                 placeholder="Nome da competicao"
               />
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Entidades organizadoras</p>
+                {[
+                  { value: "World Rugby", level: "Mundial" },
+                  { value: "Sudamerica Rugby", level: "Continental" },
+                  { value: "Brasil Rugby", level: "País" },
+                  { value: "FPR", level: "Estado" },
+                  { value: "Liga do Vale", level: "Regional" },
+                ].map(({ value, level }) => {
+                  const checked = organizingEntities.includes(value);
+                  return (
+                    <label
+                      key={value}
+                      className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setOrganizingEntities((prev) =>
+                            checked ? prev.filter((e) => e !== value) : [...prev, value]
+                          )
+                        }
+                        className="w-4 h-4 rounded"
+                      />
+                      <span className="text-sm flex-1">{value}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{level}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

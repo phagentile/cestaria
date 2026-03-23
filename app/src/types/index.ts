@@ -229,6 +229,7 @@ export interface Match {
   gameTypeId: string;
   categoryId?: string;
   competitionName?: string;
+  organizingEntities?: string[];
   venue?: string;
   matchDate?: string;
   startTime?: string;
