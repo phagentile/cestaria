@@ -15,6 +15,11 @@
 - shadcn/ui usa base-ui (não Radix). Select.onValueChange recebe `string | null`, precisa `v ?? ""`
 - Não usar `asChild` — não existe no base-ui. Usar state controlado para dialogs.
 - Google Fonts não disponível em build offline — usar font-sans do sistema
+- CSS tokens do rugby: usar `var(--rugby-try)`, `var(--rugby-conversion)`, etc. (definidos em globals.css no bloco .dark)
+- Animações de entrada: usar classe `animate-fade-in-up` e `stagger-children` definidas em globals.css
+- Status de partida inclui `confirmed` entre `scheduled` e `live`: scheduled → confirmed → live → finished → reopened
+- Debounce de 500ms em botões de ação (ref `lastActionRef`) + estado `busy` para prevenir duplo-registro
+- MatchInfoPanel novo componente em /components/match/match-info-panel.tsx — mostrar na página de partida acima dos painéis
 ---
 
 ## 2026-03-15 - PLAN-001
@@ -54,4 +59,26 @@
   - Sync usa "offline wins" para dados de partida mas "server wins" para cadastros mestres
   - JWT long-lived é necessário porque operador pode ficar 80+ min offline
   - Geração de PDF DEVE funcionar no browser (offline-first)
+---
+
+## 2026-03-23 - UI/UX Pro Max Improvements (RegiSLAR Analysis)
+- Redesenhado sistema de design com CSS tokens semânticos de rugby (`--rugby-try`, `--rugby-conversion`, etc.)
+- Adicionado status `confirmed` ao fluxo de partida e action `confirmMatch()` com audit log
+- ScorePanel redesenhado: gradient bg, labels LOCAL/VISITANTE, contagem de tries (3T-7T), font 6xl
+- Timeline reformulada com eixo vertical, círculos coloridos por tipo de evento, ícones Lucide, badges de pontos (+5/+2/+3)
+- Dashboard substituído por tabela responsiva com filtros de status/busca + pills de contagem
+- Novo componente MatchInfoPanel: grid 2 colunas (Info da Partida + Oficiais)
+- Todas as ações com toast (sonner): score, cartões, substituições, clock, encerrar, reabrir, exportar
+- Debounce 500ms nos botões de ação + estado `busy` + texto "Registrando..."
+- Animações: `animate-fade-in-up` em painéis, `stagger-children` na tabela, `active:scale-95` nos botões
+- Build: `npx next build` ✓ sem erros, TypeScript ✓ sem erros
+- Files changed: app/src/app/globals.css, app/src/types/index.ts, app/src/stores/match-store.ts, app/src/app/dashboard/page.tsx, app/src/app/match/[id]/page.tsx, app/src/components/match/match-header.tsx, app/src/components/match/score-panel.tsx, app/src/components/match/timeline.tsx, app/src/components/match/action-panel.tsx, app/src/components/match/timer-panel.tsx, app/src/components/match/export-panel.tsx
+- Files created: app/src/components/match/match-info-panel.tsx, docs/melhorias-regisar-review.md
+- **Learnings for future iterations:**
+  - CSS custom properties (var(--rugby-*)) funcionam perfeitamente com Tailwind no bloco `.dark` do globals.css
+  - `useRef` para debounce é mais adequado que `useCallback` com deps — evita re-renders desnecessários
+  - Timeline com eixo vertical usa `flex flex-col items-center` + `border-l-2 border-dashed` entre eventos
+  - MatchInfoPanel deve ser importado na página de match ACIMA do grid principal (antes do flex-1)
+  - Status `confirmed` no startClock: tanto `scheduled` quanto `confirmed` transitam para `live` — sem tratamento especial necessário
+  - `toast.success/info/error` do sonner já está configurado via `<Toaster />` no layout raiz
 ---

@@ -3,7 +3,6 @@
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { formatTime } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
 
 export function TimerPanel() {
   const { disciplinaryClocks, medicalClocks, roster } = useMatchStore();
@@ -23,12 +22,12 @@ export function TimerPanel() {
   const getClub = (clubId: string) => clubs.find((c) => c.id === clubId);
 
   return (
-    <div className="p-3 border-b space-y-2">
+    <div className="p-3 border-b border-[var(--border)] space-y-2 animate-fade-in-up">
       {/* Disciplinary Clocks */}
       {activeDisciplinary.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">
-            RELOGIOS DISCIPLINARES (tempo de jogo)
+          <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1 uppercase tracking-wide">
+            Relogios Disciplinares (tempo de jogo)
           </div>
           <div className="space-y-1">
             {activeDisciplinary.map((clock) => {
@@ -38,28 +37,29 @@ export function TimerPanel() {
                 clock.durationSeconds - clock.elapsedGameSeconds;
               const pct =
                 (clock.elapsedGameSeconds / clock.durationSeconds) * 100;
+              const isYellow = clock.clockType === "yellow";
 
               return (
                 <div
                   key={clock.id}
-                  className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1.5"
+                  className="flex items-center gap-2 bg-[var(--muted)]/50 rounded-lg px-3 py-2"
                 >
                   <div
-                    className={`w-3 h-4 rounded-sm ${clock.clockType === "yellow" ? "bg-yellow-400" : "bg-red-500"}`}
+                    className={`w-3.5 h-5 rounded-sm shadow-sm ${isYellow ? "bg-[var(--rugby-yellow-card)]" : "bg-[var(--rugby-red-card)]"}`}
                   />
-                  <span className="text-xs font-medium">
+                  <span className="text-xs font-bold text-[var(--foreground)] w-6">
                     #{player?.shirtNumber ?? "?"}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate flex-1">
+                  <span className="text-xs text-[var(--muted-foreground)] truncate flex-1">
                     {player?.playerName} ({club?.acronym})
                   </span>
-                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="w-20 h-2 bg-[var(--muted)] rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${clock.clockType === "yellow" ? "bg-yellow-400" : "bg-red-500"}`}
+                      className={`h-full rounded-full transition-all duration-1000 ${isYellow ? "bg-[var(--rugby-yellow-card)]" : "bg-[var(--rugby-red-card)]"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-xs font-mono font-semibold w-12 text-right tabular-nums">
+                  <span className="text-xs font-mono font-bold w-14 text-right tabular-nums text-[var(--foreground)]">
                     {formatTime(remaining)}
                   </span>
                 </div>
@@ -72,8 +72,8 @@ export function TimerPanel() {
       {/* Medical Clocks */}
       {activeMedical.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">
-            RELOGIOS MEDICOS (tempo real)
+          <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1 uppercase tracking-wide">
+            Relogios Medicos (tempo real)
           </div>
           <div className="space-y-1">
             {activeMedical.map((clock) => {
@@ -97,27 +97,24 @@ export function TimerPanel() {
               return (
                 <div
                   key={clock.id}
-                  className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1.5"
+                  className="flex items-center gap-2 bg-[var(--muted)]/50 rounded-lg px-3 py-2"
                 >
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1 h-4 border-cyan-500 text-cyan-600"
-                  >
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
                     {typeLabel}
-                  </Badge>
-                  <span className="text-xs font-medium">
+                  </span>
+                  <span className="text-xs font-bold text-[var(--foreground)] w-6">
                     #{player?.shirtNumber ?? "?"}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate flex-1">
+                  <span className="text-xs text-[var(--muted-foreground)] truncate flex-1">
                     {player?.playerName} ({club?.acronym})
                   </span>
-                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="w-20 h-2 bg-[var(--muted)] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-cyan-500"
+                      className="h-full bg-cyan-500 rounded-full transition-all duration-1000"
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
-                  <span className="text-xs font-mono font-semibold w-12 text-right tabular-nums">
+                  <span className="text-xs font-mono font-bold w-14 text-right tabular-nums text-[var(--foreground)]">
                     {formatTime(remaining)}
                   </span>
                 </div>

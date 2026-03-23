@@ -43,7 +43,7 @@ export const GAME_TYPE_CONFIGS: Record<GameTypeName, GameTypeConfig> = {
 };
 
 // --- Match Status ---
-export type MatchStatus = 'scheduled' | 'live' | 'finished' | 'reopened';
+export type MatchStatus = 'scheduled' | 'confirmed' | 'live' | 'finished' | 'reopened';
 export type MatchPeriod =
   | 'not_started'
   | 'first_half'

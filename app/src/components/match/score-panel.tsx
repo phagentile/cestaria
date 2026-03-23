@@ -4,13 +4,22 @@ import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 
 export function ScorePanel() {
-  const { match, homeScore, awayScore, shootoutKicks } = useMatchStore();
+  const { match, events, homeScore, awayScore, shootoutKicks } = useMatchStore();
   const { clubs } = useAdminStore();
 
   if (!match) return null;
 
   const home = clubs.find((c) => c.id === match.homeClubId);
   const away = clubs.find((c) => c.id === match.awayClubId);
+
+  // Count tries per team
+  const activeEvents = events.filter((e) => !e.deletedAt);
+  const homeTries = activeEvents.filter(
+    (e) => e.clubId === match.homeClubId && (e.eventType === "try" || e.eventType === "penalty_try")
+  ).length;
+  const awayTries = activeEvents.filter(
+    (e) => e.clubId === match.awayClubId && (e.eventType === "try" || e.eventType === "penalty_try")
+  ).length;
 
   // Shootout score
   const homeShootout = shootoutKicks.filter(
@@ -22,12 +31,17 @@ export function ScorePanel() {
   const hasShootout = shootoutKicks.length > 0;
 
   return (
-    <div className="bg-zinc-900 text-white px-4 py-6">
-      <div className="flex items-center justify-center gap-6">
-        {/* Home */}
-        <div className="text-center flex-1">
+    <div
+      className="px-4 py-6 text-white"
+      style={{
+        background: "linear-gradient(135deg, #1a2332 0%, #2c3e50 50%, #1a2332 100%)",
+      }}
+    >
+      <div className="flex items-center justify-center gap-4">
+        {/* Home Team */}
+        <div className="text-center flex-1 min-w-0">
           <div
-            className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-xs font-bold border-2"
+            className="w-14 h-14 rounded-full mx-auto mb-2 flex items-center justify-center text-xs font-bold border-2 shadow-lg"
             style={{
               backgroundColor: home?.primaryColor ?? "#666",
               borderColor: home?.secondaryColor ?? "#999",
@@ -35,27 +49,36 @@ export function ScorePanel() {
           >
             {home?.acronym?.slice(0, 3) ?? "CAS"}
           </div>
-          <div className="text-sm font-medium truncate">
+          <div className="text-sm font-semibold truncate">
             {home?.name ?? "Time da Casa"}
           </div>
+          <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--rugby-home)] text-white">
+            Local
+          </span>
         </div>
 
         {/* Score */}
-        <div className="text-center">
-          <div className="text-5xl font-bold font-mono tabular-nums">
+        <div className="text-center shrink-0">
+          <div
+            className="text-6xl font-bold font-mono tabular-nums leading-none"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
+          >
             {homeScore} - {awayScore}
           </div>
+          <div className="text-sm text-gray-400 mt-1.5 font-mono">
+            ({homeTries}T - {awayTries}T)
+          </div>
           {hasShootout && (
-            <div className="text-sm text-zinc-400 mt-1">
-              ({homeShootout} - {awayShootout})
+            <div className="text-xs text-[var(--rugby-gold)] mt-1 font-medium">
+              Penais: {homeShootout} - {awayShootout}
             </div>
           )}
         </div>
 
-        {/* Away */}
-        <div className="text-center flex-1">
+        {/* Away Team */}
+        <div className="text-center flex-1 min-w-0">
           <div
-            className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-xs font-bold border-2"
+            className="w-14 h-14 rounded-full mx-auto mb-2 flex items-center justify-center text-xs font-bold border-2 shadow-lg"
             style={{
               backgroundColor: away?.primaryColor ?? "#666",
               borderColor: away?.secondaryColor ?? "#999",
@@ -63,9 +86,12 @@ export function ScorePanel() {
           >
             {away?.acronym?.slice(0, 3) ?? "VIS"}
           </div>
-          <div className="text-sm font-medium truncate">
+          <div className="text-sm font-semibold truncate">
             {away?.name ?? "Time Visitante"}
           </div>
+          <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--rugby-away)] text-white">
+            Visitante
+          </span>
         </div>
       </div>
     </div>

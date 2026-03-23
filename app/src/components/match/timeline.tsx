@@ -7,7 +7,6 @@ import { EVENT_LABELS } from "@/types";
 import type { MatchEvent, EventType } from "@/types";
 import { formatMinSec } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,26 +25,76 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  CircleDot,
+  Check,
+  X as XIcon,
+  ArrowRightLeft,
+  AlertTriangle,
+} from "lucide-react";
 
-const EVENT_COLORS: Partial<Record<EventType, string>> = {
-  try: "bg-green-100 text-green-800 border-green-200",
-  conversion_made: "bg-blue-100 text-blue-800 border-blue-200",
-  conversion_missed: "bg-blue-50 text-blue-400 border-blue-100",
-  penalty_kick_made: "bg-orange-100 text-orange-800 border-orange-200",
-  penalty_kick_missed: "bg-orange-50 text-orange-400 border-orange-100",
-  drop_goal_made: "bg-purple-100 text-purple-800 border-purple-200",
-  drop_goal_missed: "bg-purple-50 text-purple-400 border-purple-100",
-  penalty_try: "bg-red-100 text-red-800 border-red-200",
-  yellow_card: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  red_card: "bg-red-100 text-red-800 border-red-200",
-  temp_red_card: "bg-red-50 text-red-600 border-red-100",
-  substitution_out: "bg-zinc-100 text-zinc-600 border-zinc-200",
-  substitution_in: "bg-zinc-100 text-zinc-600 border-zinc-200",
+// Circle color by event type
+const EVENT_CIRCLE_COLOR: Partial<Record<EventType, string>> = {
+  try: "bg-[var(--rugby-try)] text-white",
+  conversion_made: "bg-[var(--rugby-conversion)] text-white",
+  conversion_missed: "bg-red-500 text-white",
+  penalty_kick_made: "bg-[var(--rugby-penalty)] text-white",
+  penalty_kick_missed: "bg-red-500 text-white",
+  drop_goal_made: "bg-[var(--rugby-drop)] text-white",
+  drop_goal_missed: "bg-red-500 text-white",
+  penalty_try: "bg-[var(--rugby-try)] text-white",
+  yellow_card: "bg-[var(--rugby-yellow-card)] text-black",
+  red_card: "bg-[var(--rugby-red-card)] text-white",
+  temp_red_card: "bg-[var(--rugby-red-card)]/70 text-white",
+  substitution_out: "bg-[var(--rugby-substitution)] text-white",
+  substitution_in: "bg-[var(--rugby-substitution)] text-white",
 };
 
+const EVENT_LINE_COLOR: Partial<Record<EventType, string>> = {
+  try: "border-[var(--rugby-try)]",
+  conversion_made: "border-[var(--rugby-conversion)]",
+  conversion_missed: "border-red-500",
+  penalty_kick_made: "border-[var(--rugby-penalty)]",
+  penalty_kick_missed: "border-red-500",
+  drop_goal_made: "border-[var(--rugby-drop)]",
+  drop_goal_missed: "border-red-500",
+  penalty_try: "border-[var(--rugby-try)]",
+  yellow_card: "border-[var(--rugby-yellow-card)]",
+  red_card: "border-[var(--rugby-red-card)]",
+  temp_red_card: "border-[var(--rugby-red-card)]/70",
+  substitution_out: "border-[var(--rugby-substitution)]",
+  substitution_in: "border-[var(--rugby-substitution)]",
+};
+
+function EventIcon({ type }: { type: EventType }) {
+  switch (type) {
+    case "try":
+    case "penalty_try":
+      return <CircleDot className="w-3.5 h-3.5" />;
+    case "conversion_made":
+    case "penalty_kick_made":
+    case "drop_goal_made":
+      return <Check className="w-3.5 h-3.5" />;
+    case "conversion_missed":
+    case "penalty_kick_missed":
+    case "drop_goal_missed":
+      return <XIcon className="w-3.5 h-3.5" />;
+    case "substitution_out":
+    case "substitution_in":
+      return <ArrowRightLeft className="w-3.5 h-3.5" />;
+    case "yellow_card":
+    case "red_card":
+    case "temp_red_card":
+      return <AlertTriangle className="w-3.5 h-3.5" />;
+    default:
+      return <CircleDot className="w-3.5 h-3.5" />;
+  }
+}
+
 export function Timeline() {
-  const { match, events, roster, homeScore, awayScore, editEvent, deleteEvent } =
+  const { match, events, roster, editEvent, deleteEvent } =
     useMatchStore();
   const { clubs } = useAdminStore();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -97,83 +146,135 @@ export function Timeline() {
   };
 
   return (
-    <div className="space-y-1 mt-2">
-      <div className="text-xs font-medium text-muted-foreground mb-2">
+    <div className="mt-2">
+      <div className="text-xs font-medium text-[var(--muted-foreground)] mb-3">
         TIMELINE ({activeEvents.length} eventos)
       </div>
 
       {activeEvents.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
+        <p className="text-sm text-[var(--muted-foreground)] text-center py-8">
           Nenhum evento registrado.
         </p>
       )}
 
-      {activeEvents.map((event) => {
-        const player = getPlayer(event.rosterId);
-        const club = getClub(event.clubId);
+      {/* Vertical timeline */}
+      <div className="relative">
+        {activeEvents.map((event, index) => {
+          const player = getPlayer(event.rosterId);
+          const club = getClub(event.clubId);
 
-        if (event.clubId === match.homeClubId) runningHome += event.points;
-        else if (event.clubId === match.awayClubId) runningAway += event.points;
+          if (event.clubId === match.homeClubId) runningHome += event.points;
+          else if (event.clubId === match.awayClubId) runningAway += event.points;
 
-        const colorClass =
-          EVENT_COLORS[event.eventType] ?? "bg-zinc-50 text-zinc-700 border-zinc-200";
-        const meta = event.metadata as Record<string, string> | undefined;
+          const circleColor =
+            EVENT_CIRCLE_COLOR[event.eventType] ?? "bg-gray-500 text-white";
+          const lineColor =
+            EVENT_LINE_COLOR[event.eventType] ?? "border-gray-500";
+          const isLast = index === activeEvents.length - 1;
+          const meta = event.metadata as Record<string, string> | undefined;
 
-        return (
-          <div
-            key={event.id}
-            className={`flex items-center gap-2 rounded border px-2 py-1.5 text-xs ${colorClass}`}
-          >
-            {/* Time */}
-            <span className="font-mono font-semibold w-10 shrink-0 tabular-nums">
-              {formatMinSec(event.minute, event.second)}
-            </span>
-
-            {/* Club */}
-            <span className="font-medium w-10 shrink-0 text-center">
-              {club?.acronym ?? "—"}
-            </span>
-
-            {/* Event + Player */}
-            <span className="flex-1 truncate">
-              {EVENT_LABELS[event.eventType]}
-              {event.eventType === "penalty_try" && " (7pts, #00)"}
-              {player && ` - #${player.shirtNumber} ${player.playerName}`}
-              {meta?.reason && ` [${meta.reason}]`}
-              {meta?.substitutionType && ` (${meta.substitutionType})`}
-            </span>
-
-            {/* Running score */}
-            {event.points > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1 h-4 shrink-0">
-                {runningHome}-{runningAway}
-              </Badge>
-            )}
-
-            {/* Actions */}
-            {!isLocked && (
-              <div className="flex gap-0.5 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0"
-                  onClick={() => handleEdit(event)}
-                >
-                  <Pencil className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0 text-destructive"
-                  onClick={() => setDeleteId(event.id)}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+          return (
+            <div
+              key={event.id}
+              className="flex gap-3 animate-fade-in-up"
+              style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+            >
+              {/* Minute */}
+              <div className="w-12 text-right shrink-0 pt-1">
+                <span className="font-mono text-xs font-semibold text-[var(--muted-foreground)] tabular-nums">
+                  {formatMinSec(event.minute, event.second)}
+                </span>
               </div>
-            )}
-          </div>
-        );
-      })}
+
+              {/* Circle + Line */}
+              <div className="flex flex-col items-center shrink-0">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-md ${circleColor}`}
+                >
+                  <EventIcon type={event.eventType} />
+                </div>
+                {!isLast && (
+                  <div
+                    className={`w-0 flex-1 border-l-2 border-dashed my-0.5 min-h-[20px] ${lineColor}`}
+                  />
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 pb-4 min-w-0">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-semibold text-[var(--foreground)]">
+                        {EVENT_LABELS[event.eventType]}
+                      </span>
+                      {event.points > 0 && (
+                        <span className="inline-block px-1.5 py-0 rounded text-[10px] font-bold bg-[var(--rugby-gold)] text-black">
+                          +{event.points}
+                        </span>
+                      )}
+                      {club && (
+                        <span className="text-[10px] font-medium px-1.5 py-0 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">
+                          {club.acronym}
+                        </span>
+                      )}
+                    </div>
+                    {player && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--muted)] text-[var(--foreground)] text-[10px] font-bold shrink-0">
+                          {player.shirtNumber}
+                        </span>
+                        <span className="text-xs text-[var(--muted-foreground)] truncate">
+                          {player.playerName}
+                        </span>
+                      </div>
+                    )}
+                    {meta?.reason && (
+                      <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5 italic">
+                        {meta.reason}
+                      </div>
+                    )}
+                    {meta?.substitutionType && (
+                      <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
+                        Tipo: {meta.substitutionType}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Running score */}
+                  {event.points > 0 && (
+                    <span className="text-xs font-mono font-semibold text-[var(--muted-foreground)] shrink-0 tabular-nums bg-[var(--muted)] px-1.5 py-0.5 rounded">
+                      {runningHome}-{runningAway}
+                    </span>
+                  )}
+
+                  {/* Actions */}
+                  {!isLocked && (
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleEdit(event)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive"
+                        onClick={() => setDeleteId(event.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog

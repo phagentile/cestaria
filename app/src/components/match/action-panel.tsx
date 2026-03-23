@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { EventType, CardType, SubstitutionType } from "@/types";
-import { LAW9_REASONS, SUBSTITUTION_LABELS } from "@/types";
+import { LAW9_REASONS, SUBSTITUTION_LABELS, EVENT_LABELS } from "@/types";
 import { toast } from "sonner";
 
 type ActionMode = "score" | "card" | "substitution" | null;
@@ -30,6 +30,8 @@ export function ActionPanel() {
     useMatchStore();
   const { clubs } = useAdminStore();
   const [mode, setMode] = useState<ActionMode>(null);
+  const [busy, setBusy] = useState(false);
+  const lastActionRef = useRef<number>(0);
 
   // Score state
   const [scoreType, setScoreType] = useState<EventType | "">("");
@@ -65,9 +67,18 @@ export function ActionPanel() {
   const getAllRoster = (clubId: string) =>
     roster.filter((r) => r.clubId === clubId);
 
+  // Debounce guard
+  const guardAction = useCallback((): boolean => {
+    const now = Date.now();
+    if (now - lastActionRef.current < 500) {
+      return false;
+    }
+    lastActionRef.current = now;
+    return true;
+  }, []);
+
   const handleScore = async (type: EventType) => {
     if (type === "penalty_try") {
-      // Penalty try: no player selection, select team
       setScoreType(type);
       setScoreRosterId("");
       setMode("score");
@@ -78,39 +89,60 @@ export function ActionPanel() {
   };
 
   const confirmScore = async () => {
-    if (!scoreType || !scoreClubId) return;
-    if (scoreType === "penalty_try") {
-      await addScore(scoreType, scoreClubId);
-      toast.success("Penal Try registrado");
-    } else {
-      await addScore(
-        scoreType,
-        scoreClubId,
-        scoreRosterId || undefined
-      );
-      toast.success("Pontuacao registrada");
+    if (!scoreType || !scoreClubId || busy) return;
+    if (!guardAction()) return;
+    setBusy(true);
+    try {
+      if (scoreType === "penalty_try") {
+        await addScore(scoreType, scoreClubId);
+      } else {
+        await addScore(scoreType, scoreClubId, scoreRosterId || undefined);
+      }
+      const club = clubs.find((c) => c.id === scoreClubId);
+      toast.success(`${EVENT_LABELS[scoreType]} registrado — ${club?.acronym ?? ""}`);
+      resetState();
+    } finally {
+      setBusy(false);
     }
-    resetState();
   };
 
   const confirmCard = async () => {
-    if (!cardClubId || !cardRosterId || !cardType || !cardReason) return;
-    await addCard(
-      cardClubId,
-      cardRosterId,
-      cardType,
-      cardReason,
-      cardDescription || undefined
-    );
-    toast.success("Cartao registrado");
-    resetState();
+    if (!cardClubId || !cardRosterId || !cardType || !cardReason || busy) return;
+    if (!guardAction()) return;
+    setBusy(true);
+    try {
+      await addCard(
+        cardClubId,
+        cardRosterId,
+        cardType,
+        cardReason,
+        cardDescription || undefined
+      );
+      const player = roster.find((r) => r.id === cardRosterId);
+      const cardLabel =
+        cardType === "yellow" ? "Amarelo" : cardType === "red" ? "Vermelho" : "Verm. Temp.";
+      toast.success(`Cartao ${cardLabel} — #${player?.shirtNumber ?? "?"} ${player?.playerName ?? ""}`);
+      resetState();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const confirmSub = async () => {
-    if (!subClubId || !subOutId || !subInId || !subType) return;
-    await addSubstitution(subClubId, subOutId, subInId, subType);
-    toast.success("Substituicao registrada");
-    resetState();
+    if (!subClubId || !subOutId || !subInId || !subType || busy) return;
+    if (!guardAction()) return;
+    setBusy(true);
+    try {
+      await addSubstitution(subClubId, subOutId, subInId, subType);
+      const outPlayer = roster.find((r) => r.id === subOutId);
+      const inPlayer = roster.find((r) => r.id === subInId);
+      toast.success(
+        `Substituicao: #${outPlayer?.shirtNumber ?? "?"} sai, #${inPlayer?.shirtNumber ?? "?"} entra`
+      );
+      resetState();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const resetState = () => {
@@ -130,58 +162,31 @@ export function ActionPanel() {
   };
 
   const scoreButtons: { type: EventType; label: string; color: string }[] = [
-    { type: "try", label: "Try", color: "bg-green-600 hover:bg-green-700" },
-    {
-      type: "conversion_made",
-      label: "Conv.",
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-    {
-      type: "conversion_missed",
-      label: "Conv. X",
-      color: "bg-blue-400 hover:bg-blue-500",
-    },
-    {
-      type: "penalty_kick_made",
-      label: "Penal",
-      color: "bg-orange-600 hover:bg-orange-700",
-    },
-    {
-      type: "penalty_kick_missed",
-      label: "Penal X",
-      color: "bg-orange-400 hover:bg-orange-500",
-    },
-    {
-      type: "drop_goal_made",
-      label: "Drop",
-      color: "bg-purple-600 hover:bg-purple-700",
-    },
-    {
-      type: "drop_goal_missed",
-      label: "Drop X",
-      color: "bg-purple-400 hover:bg-purple-500",
-    },
-    {
-      type: "penalty_try",
-      label: "Penal Try",
-      color: "bg-red-600 hover:bg-red-700",
-    },
+    { type: "try", label: "Try", color: "bg-[var(--rugby-try)] hover:bg-[var(--rugby-try)]/80" },
+    { type: "conversion_made", label: "Conv.", color: "bg-[var(--rugby-conversion)] hover:bg-[var(--rugby-conversion)]/80" },
+    { type: "conversion_missed", label: "Conv. X", color: "bg-[var(--rugby-conversion)]/60 hover:bg-[var(--rugby-conversion)]/50" },
+    { type: "penalty_kick_made", label: "Penal", color: "bg-[var(--rugby-penalty)] hover:bg-[var(--rugby-penalty)]/80" },
+    { type: "penalty_kick_missed", label: "Penal X", color: "bg-[var(--rugby-penalty)]/60 hover:bg-[var(--rugby-penalty)]/50" },
+    { type: "drop_goal_made", label: "Drop", color: "bg-[var(--rugby-drop)] hover:bg-[var(--rugby-drop)]/80" },
+    { type: "drop_goal_missed", label: "Drop X", color: "bg-[var(--rugby-drop)]/60 hover:bg-[var(--rugby-drop)]/50" },
+    { type: "penalty_try", label: "P. Try", color: "bg-[var(--rugby-red-card)] hover:bg-[var(--rugby-red-card)]/80" },
   ];
 
   return (
-    <div className="p-3 border-b space-y-3">
+    <div className="p-3 border-b border-[var(--border)] space-y-3 animate-fade-in-up">
       {/* Score Buttons */}
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1.5">
-          PONTUACAO
+        <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5 uppercase tracking-wide">
+          Pontuacao
         </div>
         <div className="grid grid-cols-4 gap-1.5">
           {scoreButtons.map((btn) => (
             <Button
               key={btn.type}
               size="sm"
-              className={`${btn.color} text-white text-xs h-8`}
+              className={`${btn.color} text-white text-xs h-9 font-semibold transition-all duration-200 active:scale-95`}
               onClick={() => handleScore(btn.type)}
+              disabled={busy}
             >
               {btn.label}
             </Button>
@@ -193,42 +198,42 @@ export function ActionPanel() {
       <div className="flex gap-2">
         <Button
           size="sm"
-          variant="outline"
-          className="flex-1 border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+          className="flex-1 h-9 bg-[var(--rugby-yellow-card)] text-black font-semibold hover:bg-[var(--rugby-yellow-card)]/80 transition-all duration-200 active:scale-95"
           onClick={() => {
             setCardType("yellow");
             setMode("card");
           }}
+          disabled={busy}
         >
           Amarelo
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
+          className="flex-1 h-9 bg-[var(--rugby-red-card)] text-white font-semibold hover:bg-[var(--rugby-red-card)]/80 transition-all duration-200 active:scale-95"
           onClick={() => {
             setCardType("red");
             setMode("card");
           }}
+          disabled={busy}
         >
           Vermelho
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="flex-1 border-red-300 text-red-400 hover:bg-red-50"
+          className="flex-1 h-9 bg-[var(--rugby-red-card)]/60 text-white font-semibold hover:bg-[var(--rugby-red-card)]/50 transition-all duration-200 active:scale-95"
           onClick={() => {
             setCardType("temp_red");
             setMode("card");
           }}
+          disabled={busy}
         >
-          Verm. Temp.
+          V. Temp.
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="flex-1"
+          className="flex-1 h-9 bg-[var(--rugby-substitution)] text-white font-semibold hover:bg-[var(--rugby-substitution)]/80 transition-all duration-200 active:scale-95"
           onClick={() => setMode("substitution")}
+          disabled={busy}
         >
           Subst.
         </Button>
@@ -238,12 +243,17 @@ export function ActionPanel() {
       <Dialog open={mode === "score"} onOpenChange={() => resetState()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registrar Pontuacao</DialogTitle>
+            <DialogTitle>
+              Registrar {scoreType ? EVENT_LABELS[scoreType] : "Pontuacao"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Time *</Label>
-              <Select value={scoreClubId} onValueChange={(v) => setScoreClubId(v ?? "")}>
+              <Select
+                value={scoreClubId}
+                onValueChange={(v) => setScoreClubId(v ?? "")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o time" />
                 </SelectTrigger>
@@ -282,9 +292,9 @@ export function ActionPanel() {
             <Button
               className="w-full"
               onClick={confirmScore}
-              disabled={!scoreClubId}
+              disabled={!scoreClubId || busy}
             >
-              Registrar
+              {busy ? "Registrando..." : "Registrar"}
             </Button>
           </div>
         </DialogContent>
@@ -306,7 +316,10 @@ export function ActionPanel() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Time *</Label>
-              <Select value={cardClubId} onValueChange={(v) => setCardClubId(v ?? "")}>
+              <Select
+                value={cardClubId}
+                onValueChange={(v) => setCardClubId(v ?? "")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o time" />
                 </SelectTrigger>
@@ -345,7 +358,10 @@ export function ActionPanel() {
 
             <div className="space-y-1">
               <Label>Motivo (Lei 9) *</Label>
-              <Select value={cardReason} onValueChange={(v) => setCardReason(v ?? "")}>
+              <Select
+                value={cardReason}
+                onValueChange={(v) => setCardReason(v ?? "")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o motivo" />
                 </SelectTrigger>
@@ -371,9 +387,11 @@ export function ActionPanel() {
             <Button
               className="w-full"
               onClick={confirmCard}
-              disabled={!cardClubId || !cardRosterId || !cardReason}
+              disabled={
+                !cardClubId || !cardRosterId || !cardReason || busy
+              }
             >
-              Registrar Cartao
+              {busy ? "Registrando..." : "Registrar Cartao"}
             </Button>
           </div>
         </DialogContent>
@@ -391,7 +409,10 @@ export function ActionPanel() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Time *</Label>
-              <Select value={subClubId} onValueChange={(v) => setSubClubId(v ?? "")}>
+              <Select
+                value={subClubId}
+                onValueChange={(v) => setSubClubId(v ?? "")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o time" />
                 </SelectTrigger>
@@ -410,7 +431,10 @@ export function ActionPanel() {
               <>
                 <div className="space-y-1">
                   <Label>Quem sai *</Label>
-                  <Select value={subOutId} onValueChange={(v) => setSubOutId(v ?? "")}>
+                  <Select
+                    value={subOutId}
+                    onValueChange={(v) => setSubOutId(v ?? "")}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -426,7 +450,10 @@ export function ActionPanel() {
 
                 <div className="space-y-1">
                   <Label>Quem entra *</Label>
-                  <Select value={subInId} onValueChange={(v) => setSubInId(v ?? "")}>
+                  <Select
+                    value={subInId}
+                    onValueChange={(v) => setSubInId(v ?? "")}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -471,9 +498,11 @@ export function ActionPanel() {
             <Button
               className="w-full"
               onClick={confirmSub}
-              disabled={!subClubId || !subOutId || !subInId || !subType}
+              disabled={
+                !subClubId || !subOutId || !subInId || !subType || busy
+              }
             >
-              Registrar Substituicao
+              {busy ? "Registrando..." : "Registrar Substituicao"}
             </Button>
           </div>
         </DialogContent>

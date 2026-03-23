@@ -3,16 +3,27 @@
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { EVENT_LABELS } from "@/types";
 import { formatMinSec } from "@/lib/format";
-import { Download, FileText, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { Download, FileText, AlertTriangle, FileCheck } from "lucide-react";
 
 export function ExportPanel() {
-  const { match, events, roster, referees, homeScore, awayScore, shootoutKicks } =
-    useMatchStore();
-  const { clubs, referees: allReferees, gameTypes, categories } = useAdminStore();
+  const {
+    match,
+    events,
+    roster,
+    referees,
+    homeScore,
+    awayScore,
+    shootoutKicks,
+  } = useMatchStore();
+  const {
+    clubs,
+    referees: allReferees,
+    gameTypes,
+    categories,
+  } = useAdminStore();
 
   if (!match) return null;
 
@@ -42,7 +53,8 @@ export function ExportPanel() {
     let text = `CESTARIA — RELATORIO DE EVENTOS\n`;
     text += `${"=".repeat(60)}\n`;
     text += `${homeClub?.name ?? "Casa"} ${homeScore} x ${awayScore} ${awayClub?.name ?? "Visitante"}\n`;
-    if (match.competitionName) text += `Competicao: ${match.competitionName}\n`;
+    if (match.competitionName)
+      text += `Competicao: ${match.competitionName}\n`;
     if (match.venue) text += `Local: ${match.venue}\n`;
     if (match.matchDate) text += `Data: ${match.matchDate}\n`;
     text += `Tipo: ${gameType?.name ?? "—"} | Categoria: ${category?.name ?? "—"}\n`;
@@ -63,7 +75,8 @@ export function ExportPanel() {
       const time = formatMinSec(evt.minute, evt.second);
       const teamName = (club?.acronym ?? "—").padEnd(10);
       let eventDesc = EVENT_LABELS[evt.eventType];
-      if (player) eventDesc += ` - #${player.shirtNumber} ${player.playerName}`;
+      if (player)
+        eventDesc += ` - #${player.shirtNumber} ${player.playerName}`;
       if (evt.eventType === "penalty_try") eventDesc += " (#00)";
       eventDesc = eventDesc.padEnd(33);
       const score = `${runHome}-${runAway}`;
@@ -79,21 +92,27 @@ export function ExportPanel() {
     text += `${"=".repeat(60)}\n\n`;
     text += `${homeClub?.name ?? "Casa"} ${homeScore} x ${awayScore} ${awayClub?.name ?? "Visitante"}\n`;
     if (shootoutKicks.length > 0) {
-      const hk = shootoutKicks.filter(k => k.clubId === match.homeClubId && k.result === "made").length;
-      const ak = shootoutKicks.filter(k => k.clubId === match.awayClubId && k.result === "made").length;
+      const hk = shootoutKicks.filter(
+        (k) => k.clubId === match.homeClubId && k.result === "made"
+      ).length;
+      const ak = shootoutKicks.filter(
+        (k) => k.clubId === match.awayClubId && k.result === "made"
+      ).length;
       text += `Penais: (${hk}-${ak})\n`;
     }
     text += `\n`;
-    if (match.competitionName) text += `Competicao: ${match.competitionName}\n`;
+    if (match.competitionName)
+      text += `Competicao: ${match.competitionName}\n`;
     if (category) text += `Categoria: ${category.name}\n`;
     text += `Tipo: ${gameType?.name ?? "—"}\n`;
     if (match.venue) text += `Local: ${match.venue}\n`;
     if (match.matchDate) text += `Data: ${match.matchDate}\n`;
-    if (match.startTime) text += `Inicio: ${new Date(match.startTime).toLocaleTimeString("pt-BR")}\n`;
-    if (match.endTime) text += `Fim: ${new Date(match.endTime).toLocaleTimeString("pt-BR")}\n`;
+    if (match.startTime)
+      text += `Inicio: ${new Date(match.startTime).toLocaleTimeString("pt-BR")}\n`;
+    if (match.endTime)
+      text += `Fim: ${new Date(match.endTime).toLocaleTimeString("pt-BR")}\n`;
     text += `\n`;
 
-    // Teams
     for (const [clubId, label] of [
       [match.homeClubId, homeClub?.name ?? "Casa"],
       [match.awayClubId, awayClub?.name ?? "Visitante"],
@@ -109,13 +128,17 @@ export function ExportPanel() {
 
       if (starters.length > 0) {
         text += `\nTitulares:\n`;
-        for (const r of starters.sort((a, b) => a.shirtNumber - b.shirtNumber)) {
+        for (const r of starters.sort(
+          (a, b) => a.shirtNumber - b.shirtNumber
+        )) {
           text += `  #${String(r.shirtNumber).padStart(2)} ${r.playerName}${r.position ? ` (${r.position})` : ""}\n`;
         }
       }
       if (reserves.length > 0) {
         text += `\nReservas:\n`;
-        for (const r of reserves.sort((a, b) => a.shirtNumber - b.shirtNumber)) {
+        for (const r of reserves.sort(
+          (a, b) => a.shirtNumber - b.shirtNumber
+        )) {
           text += `  #${String(r.shirtNumber).padStart(2)} ${r.playerName}${r.position ? ` (${r.position})` : ""}\n`;
         }
       }
@@ -128,7 +151,6 @@ export function ExportPanel() {
       text += `\n`;
     }
 
-    // Referees
     if (referees.length > 0) {
       text += `${"—".repeat(30)}\n`;
       text += `ARBITROS\n`;
@@ -157,6 +179,7 @@ export function ExportPanel() {
       `cestaria_timeline_${match.id.slice(0, 8)}.txt`,
       generateTimelineText()
     );
+    toast.success("Timeline exportada com sucesso");
   };
 
   const handleExportSumula = () => {
@@ -164,6 +187,7 @@ export function ExportPanel() {
       `cestaria_sumula_${match.id.slice(0, 8)}.txt`,
       generateSumulaText()
     );
+    toast.success("Sumula exportada com sucesso");
   };
 
   const handleExportComplete = () => {
@@ -172,48 +196,67 @@ export function ExportPanel() {
       `cestaria_completo_${match.id.slice(0, 8)}.txt`,
       complete
     );
+    toast.success("Relatorio completo exportado");
   };
 
   return (
-    <div className="space-y-4 mt-2">
-      <div className="text-xs font-medium text-muted-foreground">
-        EXPORTACAO
+    <div className="space-y-4 mt-2 animate-fade-in-up">
+      <div className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+        Exportacao
       </div>
 
       {/* Criteria check */}
       {!allCriteriaMet && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="py-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
-            <div className="text-xs text-yellow-800">
-              <div className="font-medium mb-1">Criterios de exportacao:</div>
-              <div className={hasMinTime ? "line-through opacity-50" : ""}>
-                Tempo minimo: {minRequired} min (atual: {clockMinutes} min)
-              </div>
-              <div className={hasStartTime ? "line-through opacity-50" : ""}>
-                Hora de inicio registrada
-              </div>
-              <div className={hasEndTime ? "line-through opacity-50" : ""}>
-                Hora de fim registrada
-              </div>
-              <div className="mt-1 text-yellow-600 italic">
-                Voce ainda pode exportar mesmo sem atender todos os criterios.
-              </div>
+        <div className="bg-[var(--rugby-yellow-card)]/10 border border-[var(--rugby-yellow-card)]/30 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-[var(--rugby-yellow-card)] mt-0.5 shrink-0" />
+          <div className="text-xs">
+            <div className="font-semibold text-[var(--rugby-yellow-card)] mb-1">
+              Criterios de exportacao:
             </div>
-          </CardContent>
-        </Card>
+            <div
+              className={
+                hasMinTime
+                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
+                  : "text-[var(--foreground)]"
+              }
+            >
+              Tempo minimo: {minRequired} min (atual: {clockMinutes} min)
+            </div>
+            <div
+              className={
+                hasStartTime
+                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
+                  : "text-[var(--foreground)]"
+              }
+            >
+              Hora de inicio registrada
+            </div>
+            <div
+              className={
+                hasEndTime
+                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
+                  : "text-[var(--foreground)]"
+              }
+            >
+              Hora de fim registrada
+            </div>
+            <div className="mt-1 text-[var(--muted-foreground)] italic">
+              Voce ainda pode exportar mesmo sem atender todos os criterios.
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="grid gap-2">
+      <div className="grid gap-2 stagger-children">
         <Button
           variant="outline"
-          className="justify-start h-auto py-3"
+          className="justify-start h-auto py-3 hover:bg-[var(--accent)] transition-all duration-200"
           onClick={handleExportTimeline}
         >
-          <FileText className="w-4 h-4 mr-2 shrink-0" />
-          <div className="text-left">
+          <FileText className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-conversion)]" />
+          <div className="text-left flex-1">
             <div className="text-sm font-medium">Timeline de Eventos</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-[var(--muted-foreground)]">
               Lista cronologica de todos os eventos
             </div>
           </div>
@@ -222,13 +265,13 @@ export function ExportPanel() {
 
         <Button
           variant="outline"
-          className="justify-start h-auto py-3"
+          className="justify-start h-auto py-3 hover:bg-[var(--accent)] transition-all duration-200"
           onClick={handleExportSumula}
         >
-          <FileText className="w-4 h-4 mr-2 shrink-0" />
-          <div className="text-left">
+          <FileCheck className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-try)]" />
+          <div className="text-left flex-1">
             <div className="text-sm font-medium">Sumula Oficial</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-[var(--muted-foreground)]">
               Dados dos clubes, atletas, comissao e arbitros
             </div>
           </div>
@@ -237,13 +280,13 @@ export function ExportPanel() {
 
         <Button
           variant="outline"
-          className="justify-start h-auto py-3"
+          className="justify-start h-auto py-3 hover:bg-[var(--accent)] transition-all duration-200"
           onClick={handleExportComplete}
         >
-          <FileText className="w-4 h-4 mr-2 shrink-0" />
-          <div className="text-left">
+          <FileText className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-drop)]" />
+          <div className="text-left flex-1">
             <div className="text-sm font-medium">Relatorio Completo</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-[var(--muted-foreground)]">
               Sumula + Timeline de eventos
             </div>
           </div>
