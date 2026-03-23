@@ -15,6 +15,8 @@ import type {
   Category,
   GameType,
   User,
+  OrganizingEntity,
+  EntityLevel,
 } from '@/types';
 
 class CestariaDB extends Dexie {
@@ -33,6 +35,7 @@ class CestariaDB extends Dexie {
   medicalClocks!: EntityTable<MedicalClock, 'id'>;
   penaltyShootout!: EntityTable<PenaltyShootoutKick, 'id'>;
   auditLog!: EntityTable<AuditLogEntry, 'id'>;
+  organizingEntities!: EntityTable<OrganizingEntity, 'id'>;
 
   constructor() {
     super('cestaria');
@@ -53,6 +56,25 @@ class CestariaDB extends Dexie {
       medicalClocks: 'id, matchId, eventId, status',
       penaltyShootout: 'id, matchId, round, clubId',
       auditLog: 'id, entity, entityId, timestamp',
+    });
+
+    this.version(2).stores({
+      users: 'id, email, role',
+      confederations: 'id, name',
+      federations: 'id, name, confederationId',
+      clubs: 'id, name, federationId',
+      referees: 'id, name, federationId',
+      categories: 'id, name',
+      gameTypes: 'id, name',
+      matches: 'id, status, matchDate, homeClubId, awayClubId',
+      matchRoster: 'id, matchId, clubId, role',
+      matchReferees: 'id, matchId, refereeId',
+      matchEvents: 'id, matchId, eventType, minute, deletedAt',
+      disciplinaryClocks: 'id, matchId, eventId, status',
+      medicalClocks: 'id, matchId, eventId, status',
+      penaltyShootout: 'id, matchId, round, clubId',
+      auditLog: 'id, entity, entityId, timestamp',
+      organizingEntities: 'id, name, level, parentId',
     });
   }
 }
@@ -106,5 +128,17 @@ export async function seedDefaults() {
       name: 'Administrador',
       role: 'gestor',
     });
+  }
+
+  // Seed default organizing entities if empty
+  const entityCount = await db.organizingEntities.count();
+  if (entityCount === 0) {
+    await db.organizingEntities.bulkAdd([
+      { id: 'oe-world-rugby', name: 'World Rugby', acronym: 'WR', level: 'world' as EntityLevel },
+      { id: 'oe-sudamerica', name: 'Sudamérica Rugby', acronym: 'SAR', level: 'continental' as EntityLevel },
+      { id: 'oe-brasil', name: 'Brasil Rugby', acronym: 'BR', level: 'national' as EntityLevel, country: 'Brasil' },
+      { id: 'oe-fpr', name: 'FPR', acronym: 'FPR', level: 'state' as EntityLevel, region: 'SP', parentId: 'oe-brasil' },
+      { id: 'oe-liga-vale', name: 'Liga do Vale', acronym: 'LV', level: 'regional' as EntityLevel, region: 'Vale do Paraíba', parentId: 'oe-fpr' },
+    ]);
   }
 }

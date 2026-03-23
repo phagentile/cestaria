@@ -59,11 +59,12 @@ interface MatchState {
   confirmMatch: (userId: string) => Promise<void>;
   closeMatch: (userId: string) => Promise<void>;
   reopenMatch: (userId: string) => Promise<void>;
+  deleteMatch: (matchId: string) => Promise<void>;
 
   // Clock
   startClock: () => void;
   pauseClock: () => void;
-  setClockSeconds: (seconds: number) => void;
+  setClockSeconds: (seconds: number) => Promise<void>;
   tickClock: (deltaMs: number) => void;
 
   // Period
@@ -266,6 +267,18 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     });
   },
 
+  deleteMatch: async (matchId: string) => {
+    await Promise.all([
+      db.matches.delete(matchId),
+      db.matchEvents.where('matchId').equals(matchId).delete(),
+      db.matchRoster.where('matchId').equals(matchId).delete(),
+      db.matchReferees.where('matchId').equals(matchId).delete(),
+      db.disciplinaryClocks.where('matchId').equals(matchId).delete(),
+      db.medicalClocks.where('matchId').equals(matchId).delete(),
+      db.penaltyShootout.where('matchId').equals(matchId).delete(),
+    ]);
+  },
+
   // Clock
   startClock: () => {
     const { match, updateMatch } = get();
@@ -289,9 +302,12 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     updateMatch({ clockRunning: false });
   },
 
-  setClockSeconds: (seconds: number) => {
-    const { updateMatch } = get();
-    updateMatch({ clockSeconds: Math.max(0, seconds) });
+  setClockSeconds: async (seconds: number) => {
+    const { match } = get();
+    if (!match) return;
+    const updated = { ...match, clockSeconds: Math.max(0, seconds), updatedAt: new Date().toISOString() };
+    await db.matches.put(updated);
+    set({ match: updated });
   },
 
   tickClock: (deltaMs: number) => {

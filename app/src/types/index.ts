@@ -216,6 +216,18 @@ export interface Category {
   description?: string;
 }
 
+export type EntityLevel = 'world' | 'continental' | 'national' | 'state' | 'regional';
+
+export interface OrganizingEntity {
+  id: string;
+  name: string;
+  acronym: string;
+  level: EntityLevel;
+  parentId?: string;
+  country?: string;
+  region?: string;
+}
+
 export interface GameType {
   id: string;
   name: GameTypeName;
@@ -229,6 +241,8 @@ export interface Match {
   gameTypeId: string;
   categoryId?: string;
   competitionName?: string;
+  scheduledStartTime?: string;
+  organizingEntityIds?: string[];
   organizingEntities?: string[];
   venue?: string;
   matchDate?: string;

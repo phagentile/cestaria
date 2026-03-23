@@ -8,6 +8,7 @@ import type {
   Category,
   GameType,
   User,
+  OrganizingEntity,
 } from '@/types';
 import { db } from '@/lib/db';
 
@@ -50,6 +51,12 @@ interface AdminState {
   // Users
   addUser: (data: Omit<User, 'id'>) => Promise<string>;
   deleteUser: (id: string) => Promise<void>;
+
+  // Organizing Entities
+  organizingEntities: OrganizingEntity[];
+  addOrganizingEntity: (data: Omit<OrganizingEntity, 'id'>) => Promise<string>;
+  updateOrganizingEntity: (id: string, data: Partial<Omit<OrganizingEntity, 'id'>>) => Promise<void>;
+  deleteOrganizingEntity: (id: string) => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>()((set, get) => ({
@@ -60,9 +67,10 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
   categories: [],
   gameTypes: [],
   users: [],
+  organizingEntities: [],
 
   loadAll: async () => {
-    const [confederations, federations, clubs, referees, categories, gameTypes, users] =
+    const [confederations, federations, clubs, referees, categories, gameTypes, users, organizingEntities] =
       await Promise.all([
         db.confederations.toArray(),
         db.federations.toArray(),
@@ -71,8 +79,9 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
         db.categories.toArray(),
         db.gameTypes.toArray(),
         db.users.toArray(),
+        db.organizingEntities.toArray(),
       ]);
-    set({ confederations, federations, clubs, referees, categories, gameTypes, users });
+    set({ confederations, federations, clubs, referees, categories, gameTypes, users, organizingEntities });
   },
 
   // Confederations
@@ -181,5 +190,24 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
   deleteUser: async (id) => {
     await db.users.delete(id);
     set((s) => ({ users: s.users.filter(u => u.id !== id) }));
+  },
+
+  // Organizing Entities
+  addOrganizingEntity: async (data) => {
+    const id = uuid();
+    const entry = { ...data, id };
+    await db.organizingEntities.add(entry);
+    set((s) => ({ organizingEntities: [...s.organizingEntities, entry] }));
+    return id;
+  },
+  updateOrganizingEntity: async (id, data) => {
+    await db.organizingEntities.update(id, data);
+    set((s) => ({
+      organizingEntities: s.organizingEntities.map(e => e.id === id ? { ...e, ...data } : e),
+    }));
+  },
+  deleteOrganizingEntity: async (id) => {
+    await db.organizingEntities.delete(id);
+    set((s) => ({ organizingEntities: s.organizingEntities.filter(e => e.id !== id) }));
   },
 }));
