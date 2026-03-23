@@ -1,21 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { db } from "@/lib/db";
-import type { Match } from "@/types";
+import type { Match, MatchStatus } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, Plus, Settings, Play } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  LogOut,
+  Plus,
+  Settings,
+  Eye,
+  Search,
+  X,
+  Trophy,
+} from "lucide-react";
+
+const STATUS_LABEL: Record<string, string> = {
+  scheduled: "Agendada",
+  confirmed: "Confirmada",
+  live: "Ao Vivo",
+  finished: "Encerrada",
+  reopened: "Reaberta",
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  scheduled: "bg-gray-500/20 text-gray-300 border border-gray-500/30",
+  confirmed: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+  live: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 animate-pulse",
+  finished: "bg-red-500/20 text-red-300 border border-red-500/30",
+  reopened: "bg-orange-500/20 text-orange-300 border border-orange-500/30",
+};
+
+const STATUS_FILTERS: MatchStatus[] = ["scheduled", "confirmed", "live", "finished", "reopened"];
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout, hasPermission } = useAuthStore();
   const { clubs, loadAll } = useAdminStore();
   const [matches, setMatches] = useState<Match[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<MatchStatus | "all">("all");
 
   useEffect(() => {
     if (!user) {
@@ -26,38 +53,48 @@ export default function DashboardPage() {
     db.matches.toArray().then(setMatches);
   }, [user, router, loadAll]);
 
-  if (!user) return null;
-
   const getClubName = (id: string) =>
     clubs.find((c) => c.id === id)?.name ?? "—";
+  const getClubAcronym = (id: string) =>
+    clubs.find((c) => c.id === id)?.acronym ?? "—";
 
-  const statusLabel: Record<string, string> = {
-    scheduled: "Agendada",
-    live: "Ao Vivo",
-    finished: "Encerrada",
-    reopened: "Reaberta",
-  };
-
-  const statusVariant = (s: string) => {
-    switch (s) {
-      case "live":
-        return "default" as const;
-      case "finished":
-        return "secondary" as const;
-      default:
-        return "outline" as const;
+  const filteredMatches = useMemo(() => {
+    let result = matches.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    if (statusFilter !== "all") {
+      result = result.filter((m) => m.status === statusFilter);
     }
-  };
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (m) =>
+          getClubName(m.homeClubId).toLowerCase().includes(q) ||
+          getClubName(m.awayClubId).toLowerCase().includes(q) ||
+          (m.competitionName ?? "").toLowerCase().includes(q) ||
+          (m.venue ?? "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [matches, statusFilter, search, clubs]);
+
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
-      <header className="bg-background border-b px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold">Cestaria</h1>
-          <p className="text-xs text-muted-foreground">
-            {user.name} — {user.role === "gestor" ? "Gestor" : "4o Arbitro"}
-          </p>
+      <header className="bg-[var(--card)] border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-[var(--rugby-try)] flex items-center justify-center">
+            <Trophy className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-[var(--foreground)]">Cestaria</h1>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {user.name} — {user.role === "gestor" ? "Gestor" : "4o Arbitro"}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           {hasPermission("manage_master_data") && (
@@ -85,9 +122,10 @@ export default function DashboardPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto p-4 space-y-4">
+      <main className="max-w-6xl mx-auto p-4 space-y-4 animate-fade-in-up">
+        {/* Title + New Match */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Partidas</h2>
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">Partidas</h2>
           {hasPermission("create_match") && (
             <Button onClick={() => router.push("/match/new")}>
               <Plus className="w-4 h-4 mr-1" />
@@ -96,58 +134,155 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {matches.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Nenhuma partida criada.
-              {hasPermission("create_match") &&
-                " Clique em 'Nova Partida' para comecar."}
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid gap-3">
-          {matches
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-            .map((m) => (
-              <Card
-                key={m.id}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => router.push(`/match/${m.id}`)}
+        {/* Filters */}
+        <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+              <Input
+                placeholder="Buscar por equipe, competicao, local..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {(search || statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                }}
               >
-                <CardContent className="py-4 flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">
-                        {getClubName(m.homeClubId)}
-                      </span>
-                      <span className="text-muted-foreground">vs</span>
-                      <span className="font-semibold">
-                        {getClubName(m.awayClubId)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {m.competitionName && `${m.competitionName} • `}
-                      {m.matchDate ?? "Sem data"}
-                      {m.venue && ` • ${m.venue}`}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={statusVariant(m.status)}>
-                      {statusLabel[m.status] ?? m.status}
-                    </Badge>
-                    <Button variant="ghost" size="sm">
-                      <Play className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                <X className="w-4 h-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                statusFilter === "all"
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+              }`}
+            >
+              Todos ({matches.length})
+            </button>
+            {STATUS_FILTERS.map((s) => {
+              const count = matches.filter((m) => m.status === s).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                    statusFilter === s
+                      ? "bg-[var(--primary)] text-white"
+                      : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                  }`}
+                >
+                  {STATUS_LABEL[s]} ({count})
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Match Table */}
+        {filteredMatches.length === 0 ? (
+          <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] py-12 text-center text-[var(--muted-foreground)]">
+            {matches.length === 0
+              ? `Nenhuma partida criada.${hasPermission("create_match") ? " Clique em 'Nova Partida' para comecar." : ""}`
+              : "Nenhuma partida encontrada com os filtros atuais."}
+          </div>
+        ) : (
+          <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--muted)]/30">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                      Encontro
+                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">
+                      Competicao
+                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden sm:table-cell">
+                      Data
+                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden lg:table-cell">
+                      Local
+                    </th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+                      Acao
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="stagger-children">
+                  {filteredMatches.map((m) => (
+                    <tr
+                      key={m.id}
+                      className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--accent)]/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/match/${m.id}`)}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-[var(--foreground)]">
+                            {getClubAcronym(m.homeClubId)}
+                          </span>
+                          <span className="text-[var(--muted-foreground)] text-xs">vs</span>
+                          <span className="font-semibold text-[var(--foreground)]">
+                            {getClubAcronym(m.awayClubId)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[var(--muted-foreground)] mt-0.5 md:hidden">
+                          {m.competitionName ?? "—"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[var(--muted-foreground)] hidden md:table-cell">
+                        {m.competitionName ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--muted-foreground)] hidden sm:table-cell">
+                        {m.matchDate ?? "Sem data"}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--muted-foreground)] hidden lg:table-cell truncate max-w-[200px]">
+                        {m.venue ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            STATUS_STYLES[m.status] ?? STATUS_STYLES.scheduled
+                          }`}
+                        >
+                          {STATUS_LABEL[m.status] ?? m.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/match/${m.id}`);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

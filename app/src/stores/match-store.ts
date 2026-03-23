@@ -40,6 +40,7 @@ interface MatchState {
   loadMatch: (matchId: string) => Promise<void>;
   createMatch: (data: Omit<Match, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'period' | 'clockSeconds' | 'clockRunning'>) => Promise<string>;
   updateMatch: (updates: Partial<Match>) => Promise<void>;
+  confirmMatch: (userId: string) => Promise<void>;
   closeMatch: (userId: string) => Promise<void>;
   reopenMatch: (userId: string) => Promise<void>;
 
@@ -178,6 +179,21 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     set({ match: updatedMatch });
   },
 
+  confirmMatch: async (userId: string) => {
+    const { match, addAuditLog, updateMatch } = get();
+    if (!match || match.status !== 'scheduled') return;
+    await updateMatch({ status: 'confirmed' });
+    await addAuditLog({
+      entity: 'match',
+      entityId: match.id,
+      action: 'confirm',
+      field: 'status',
+      oldValue: 'scheduled',
+      newValue: 'confirmed',
+      userId,
+    });
+  },
+
   closeMatch: async (userId: string) => {
     const { match, addAuditLog, updateMatch } = get();
     if (!match) return;
@@ -222,8 +238,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     const { match, updateMatch } = get();
     if (!match || match.status === 'finished') return;
     if (match.period === 'not_started') {
-      // Start first half
-      const { gameConfig } = get();
+      // Start first half — transition from scheduled/confirmed to live
       updateMatch({
         period: 'first_half',
         status: 'live',

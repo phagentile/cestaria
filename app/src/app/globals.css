@@ -83,37 +83,51 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1a2332;
+  --foreground: #f1f5f9;
+  --card: #1f2937;
+  --card-foreground: #f1f5f9;
+  --popover: #1f2937;
+  --popover-foreground: #f1f5f9;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #2c3e50;
+  --secondary-foreground: #f1f5f9;
+  --muted: #354558;
+  --muted-foreground: #94a3b8;
+  --accent: #354558;
+  --accent-foreground: #f1f5f9;
+  --destructive: #dc3545;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-2: #28a745;
+  --chart-3: #ffc107;
+  --chart-4: #dc3545;
+  --chart-5: #6c757d;
+  --radius: 0.625rem;
+  --sidebar: #1f2937;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #354558;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #3b82f6;
+
+  /* Rugby semantic tokens */
+  --rugby-try: #28a745;
+  --rugby-conversion: #3b82f6;
+  --rugby-penalty: #f97316;
+  --rugby-drop: #8b5cf6;
+  --rugby-yellow-card: #ffc107;
+  --rugby-red-card: #dc3545;
+  --rugby-substitution: #6c757d;
+  --rugby-home: #dc3545;
+  --rugby-away: #3b82f6;
+  --rugby-gold: #ffc107;
+  --rugby-success: #28a745;
 }
 
 @layer base {
@@ -127,3 +141,41 @@
     @apply font-sans;
   }
 }
+
+/* Rugby animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-score {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+.animate-pulse-score {
+  animation: pulse-score 0.3s ease-out;
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  animation: fade-in-up 0.25s ease-out both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }

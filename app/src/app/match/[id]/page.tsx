@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { useMatchStore } from "@/stores/match-store";
 import { MatchHeader } from "@/components/match/match-header";
+import { MatchInfoPanel } from "@/components/match/match-info-panel";
 import { ScorePanel } from "@/components/match/score-panel";
 import { ActionPanel } from "@/components/match/action-panel";
 import { TimerPanel } from "@/components/match/timer-panel";
@@ -65,7 +66,7 @@ export default function MatchControlPage() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        lastTickRef.current = 0; // Reset to avoid jump
+        lastTickRef.current = 0;
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -75,8 +76,8 @@ export default function MatchControlPage() {
 
   if (!user || !match) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando partida...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <p className="text-[var(--muted-foreground)]">Carregando partida...</p>
       </div>
     );
   }
@@ -84,12 +85,15 @@ export default function MatchControlPage() {
   const isLocked = match.status === "finished";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
       <MatchHeader />
+
+      {/* Match Info + Officials (2-column grid) */}
+      <MatchInfoPanel />
 
       <div className="flex-1 flex flex-col lg:flex-row gap-0">
         {/* Left: Score + Actions */}
-        <div className="lg:w-[420px] border-r flex flex-col">
+        <div className="lg:w-[420px] border-r border-[var(--border)] flex flex-col">
           <ScorePanel />
           {!isLocked && <ActionPanel />}
           <TimerPanel />
@@ -104,16 +108,28 @@ export default function MatchControlPage() {
               <TabsTrigger value="shootout">Penais</TabsTrigger>
               <TabsTrigger value="export">Exportar</TabsTrigger>
             </TabsList>
-            <TabsContent value="timeline" className="flex-1 px-4 pb-4 overflow-auto">
+            <TabsContent
+              value="timeline"
+              className="flex-1 px-4 pb-4 overflow-auto"
+            >
               <Timeline />
             </TabsContent>
-            <TabsContent value="roster" className="flex-1 px-4 pb-4 overflow-auto">
+            <TabsContent
+              value="roster"
+              className="flex-1 px-4 pb-4 overflow-auto"
+            >
               <RosterPanel />
             </TabsContent>
-            <TabsContent value="shootout" className="flex-1 px-4 pb-4 overflow-auto">
+            <TabsContent
+              value="shootout"
+              className="flex-1 px-4 pb-4 overflow-auto"
+            >
               <ShootoutPanel />
             </TabsContent>
-            <TabsContent value="export" className="flex-1 px-4 pb-4 overflow-auto">
+            <TabsContent
+              value="export"
+              className="flex-1 px-4 pb-4 overflow-auto"
+            >
               <ExportPanel />
             </TabsContent>
           </Tabs>
