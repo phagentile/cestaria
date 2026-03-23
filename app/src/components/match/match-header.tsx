@@ -6,6 +6,8 @@ import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +18,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { formatTime } from "@/lib/format";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleToggle } from "@/components/locale-toggle";
 import {
   ArrowLeft,
   Play,
@@ -26,6 +38,7 @@ import {
   Square,
   RotateCcw,
   CheckCircle,
+  Pencil,
 } from "lucide-react";
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -72,10 +85,14 @@ export function MatchHeader() {
     gameConfig,
   } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
 
   const [showReset, setShowReset] = useState(false);
   const [showClose, setShowClose] = useState(false);
   const [showReopen, setShowReopen] = useState(false);
+  const [showClockEdit, setShowClockEdit] = useState(false);
+  const [editMin, setEditMin] = useState("");
+  const [editSec, setEditSec] = useState("");
 
   if (!match) return null;
 
@@ -100,6 +117,15 @@ export function MatchHeader() {
       await confirmMatch(user.id);
       toast.success("Partida confirmada");
     }
+  };
+
+  const handleClockEdit = () => {
+    const mins = parseInt(editMin, 10);
+    const secs = parseInt(editSec, 10);
+    if (isNaN(mins) || isNaN(secs)) return;
+    setClockSeconds(Math.max(0, mins * 60 + secs));
+    setShowClockEdit(false);
+    toast.info(t("clock.edit"));
   };
 
   return (
@@ -137,8 +163,25 @@ export function MatchHeader() {
           <span className="text-xs text-gray-400 hidden sm:inline">
             {PERIOD_LABELS[match.period] ?? match.period}
           </span>
-          <div className="font-mono text-2xl font-bold tabular-nums">
-            {formatTime(match.clockSeconds)}
+          <div className="flex items-center gap-1">
+            <div className="font-mono text-2xl font-bold tabular-nums">
+              {formatTime(match.clockSeconds)}
+            </div>
+            {!match.clockRunning && !isLocked && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-white/10 h-6 w-6 p-0"
+                title={t("clock.main_edit")}
+                onClick={() => {
+                  setEditMin(String(Math.floor(match.clockSeconds / 60)));
+                  setEditSec(String(match.clockSeconds % 60));
+                  setShowClockEdit(true);
+                }}
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
+            )}
           </div>
           <div
             className={`w-2 h-2 rounded-full ${match.clockRunning ? "bg-green-500 animate-pulse" : "bg-gray-500"}`}
@@ -147,6 +190,9 @@ export function MatchHeader() {
 
         {/* Right: Controls */}
         <div className="flex items-center gap-1">
+          <LocaleToggle />
+          <ThemeToggle />
+
           {/* Confirm button for scheduled matches */}
           {match.status === "scheduled" && (
             <Button
@@ -307,6 +353,44 @@ export function MatchHeader() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Clock Edit Dialog */}
+      <Dialog open={showClockEdit} onOpenChange={setShowClockEdit}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("clock.main_edit")}</DialogTitle>
+            <DialogDescription>{t("clock.adjust_time")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="edit-min">{t("clock.minutes")}</Label>
+                <Input
+                  id="edit-min"
+                  type="number"
+                  min={0}
+                  value={editMin}
+                  onChange={(e) => setEditMin(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-sec">{t("clock.seconds")}</Label>
+                <Input
+                  id="edit-sec"
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={editSec}
+                  onChange={(e) => setEditSec(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button className="w-full" onClick={handleClockEdit}>
+              {t("ui.confirm")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

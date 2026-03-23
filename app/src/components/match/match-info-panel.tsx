@@ -2,6 +2,7 @@
 
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import { Calendar, MapPin, Clock, Users } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -20,7 +21,8 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function MatchInfoPanel() {
   const { match, referees } = useMatchStore();
-  const { clubs, referees: allReferees, gameTypes, categories } = useAdminStore();
+  const { clubs, referees: allReferees, gameTypes, categories, organizingEntities } = useAdminStore();
+  const { t } = useI18n();
 
   if (!match) return null;
 
@@ -29,22 +31,30 @@ export function MatchInfoPanel() {
   const gameType = gameTypes.find((g) => g.id === match.gameTypeId);
   const category = categories.find((c) => c.id === match.categoryId);
 
+  // Suppress unused variable warnings
+  void homeClub;
+  void awayClub;
+
   const infoItems = [
-    { label: "Data", value: match.matchDate ?? "Nao definida", icon: Calendar },
-    { label: "Local", value: match.venue ?? "Nao definido", icon: MapPin },
+    { label: t("match.date"), value: match.matchDate ?? "—", icon: Calendar },
+    { label: t("match.venue"), value: match.venue ?? "—", icon: MapPin },
     {
-      label: "Inicio",
-      value: match.startTime
+      label: t("match.scheduled_start"),
+      value: match.scheduledStartTime ?? (match.startTime
         ? new Date(match.startTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-        : "—",
+        : "—"),
       icon: Clock,
     },
-    { label: "Tipo", value: gameType?.name ?? "—" },
-    { label: "Categoria", value: category?.name ?? "—" },
-    { label: "Competicao", value: match.competitionName ?? "—" },
+    { label: t("match.game_type"), value: gameType?.name ?? "—" },
+    { label: t("match.category"), value: category?.name ?? "—" },
+    { label: t("match.competition"), value: match.competitionName ?? "—" },
   ];
 
-  const entities = match.organizingEntities ?? [];
+  // Resolve organizing entity IDs to names
+  const entityIds = match.organizingEntityIds ?? [];
+  const resolvedEntities = entityIds
+    .map((id) => organizingEntities.find((e) => e.id === id))
+    .filter(Boolean) as typeof organizingEntities;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-4 py-3 animate-fade-in-up">
@@ -52,7 +62,7 @@ export function MatchInfoPanel() {
       <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2 flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5" />
-          Informacoes da Partida
+          {t("match.config")}
         </h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
           {infoItems.map((item) => (
@@ -66,18 +76,19 @@ export function MatchInfoPanel() {
             </div>
           ))}
         </div>
-        {entities.length > 0 && (
+        {resolvedEntities.length > 0 && (
           <div className="mt-2 pt-2 border-t border-[var(--border)]">
             <div className="text-[10px] text-[var(--muted-foreground)] uppercase mb-1">
-              Entidades Organizadoras
+              {t("entity.organizing")}
             </div>
             <div className="flex flex-wrap gap-1">
-              {entities.map((e) => (
+              {resolvedEntities.map((e) => (
                 <span
-                  key={e}
+                  key={e.id}
                   className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--muted)] text-[var(--foreground)] font-medium"
+                  title={e.name}
                 >
-                  {e}
+                  {e.acronym}
                 </span>
               ))}
             </div>

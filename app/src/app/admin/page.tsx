@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -32,12 +31,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import type { UserRole } from "@/types";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleToggle } from "@/components/locale-toggle";
+import { useI18n } from "@/lib/i18n";
+import type { UserRole, EntityLevel } from "@/types";
 
 export default function AdminPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const store = useAdminStore();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!user || user.role !== "gestor") {
@@ -51,36 +54,39 @@ export default function AdminPage() {
   if (!user || user.role !== "gestor") return null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="bg-background border-b px-4 py-3 flex items-center gap-3">
+    <div className="min-h-screen bg-[var(--background)]">
+      <header className="bg-[var(--card)] border-b border-[var(--border)] px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <h1 className="text-lg font-bold">Cadastros Mestres</h1>
+        <h1 className="text-lg font-bold flex-1">{t("app.name")} — {t("admin.title")}</h1>
+        <LocaleToggle />
+        <ThemeToggle />
       </header>
 
       <main className="max-w-5xl mx-auto p-4">
         <Tabs defaultValue="clubs" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="confederations">Confed.</TabsTrigger>
-            <TabsTrigger value="federations">Federacoes</TabsTrigger>
-            <TabsTrigger value="clubs">Clubes</TabsTrigger>
-            <TabsTrigger value="referees">Arbitros</TabsTrigger>
-            <TabsTrigger value="categories">Categorias</TabsTrigger>
-            <TabsTrigger value="users">Usuarios</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="confederations">{t("admin.confederations")}</TabsTrigger>
+            <TabsTrigger value="federations">{t("admin.federations")}</TabsTrigger>
+            <TabsTrigger value="clubs">{t("admin.clubs")}</TabsTrigger>
+            <TabsTrigger value="referees">{t("admin.referees")}</TabsTrigger>
+            <TabsTrigger value="categories">{t("admin.categories")}</TabsTrigger>
+            <TabsTrigger value="users">{t("admin.users")}</TabsTrigger>
+            <TabsTrigger value="entities">{t("admin.entities")}</TabsTrigger>
           </TabsList>
 
           {/* Confederations */}
           <TabsContent value="confederations">
             <CrudSection
-              title="Confederacoes"
+              title={t("admin.confederations")}
               items={store.confederations}
               columns={["name", "acronym", "country"]}
-              columnLabels={["Nome", "Sigla", "Pais"]}
+              columnLabels={[t("ui.name"), t("ui.acronym"), t("entity.country")]}
               fields={[
-                { key: "name", label: "Nome", required: true },
-                { key: "acronym", label: "Sigla", required: true },
-                { key: "country", label: "Pais", required: true },
+                { key: "name", label: t("ui.name"), required: true },
+                { key: "acronym", label: t("ui.acronym"), required: true },
+                { key: "country", label: t("entity.country"), required: true },
               ]}
               onAdd={(data) => store.addConfederation(data as never)}
               onDelete={(id) => store.deleteConfederation(id)}
@@ -90,17 +96,17 @@ export default function AdminPage() {
           {/* Federations */}
           <TabsContent value="federations">
             <CrudSection
-              title="Federacoes"
+              title={t("admin.federations")}
               items={store.federations}
               columns={["name", "acronym", "region"]}
-              columnLabels={["Nome", "Sigla", "Regiao"]}
+              columnLabels={[t("ui.name"), t("ui.acronym"), t("entity.region")]}
               fields={[
-                { key: "name", label: "Nome", required: true },
-                { key: "acronym", label: "Sigla", required: true },
-                { key: "region", label: "Regiao", required: true },
+                { key: "name", label: t("ui.name"), required: true },
+                { key: "acronym", label: t("ui.acronym"), required: true },
+                { key: "region", label: t("entity.region"), required: true },
                 {
                   key: "confederationId",
-                  label: "Confederacao",
+                  label: t("admin.confederations"),
                   type: "select",
                   options: store.confederations.map((c) => ({
                     value: c.id,
@@ -117,17 +123,17 @@ export default function AdminPage() {
           {/* Clubs */}
           <TabsContent value="clubs">
             <CrudSection
-              title="Clubes"
+              title={t("admin.clubs")}
               items={store.clubs}
               columns={["name", "acronym", "city"]}
-              columnLabels={["Nome", "Sigla", "Cidade"]}
+              columnLabels={[t("ui.name"), t("ui.acronym"), "Cidade"]}
               fields={[
-                { key: "name", label: "Nome", required: true },
-                { key: "acronym", label: "Sigla", required: true },
+                { key: "name", label: t("ui.name"), required: true },
+                { key: "acronym", label: t("ui.acronym"), required: true },
                 { key: "city", label: "Cidade", required: true },
                 {
                   key: "federationId",
-                  label: "Federacao",
+                  label: t("admin.federations"),
                   type: "select",
                   options: store.federations.map((f) => ({
                     value: f.id,
@@ -146,12 +152,12 @@ export default function AdminPage() {
           {/* Referees */}
           <TabsContent value="referees">
             <CrudSection
-              title="Arbitros"
+              title={t("admin.referees")}
               items={store.referees}
               columns={["name", "usualRole"]}
-              columnLabels={["Nome", "Funcao"]}
+              columnLabels={[t("ui.name"), "Funcao"]}
               fields={[
-                { key: "name", label: "Nome", required: true },
+                { key: "name", label: t("ui.name"), required: true },
                 {
                   key: "usualRole",
                   label: "Funcao",
@@ -166,7 +172,7 @@ export default function AdminPage() {
                 },
                 {
                   key: "federationId",
-                  label: "Federacao",
+                  label: t("admin.federations"),
                   type: "select",
                   options: store.federations.map((f) => ({
                     value: f.id,
@@ -183,12 +189,12 @@ export default function AdminPage() {
           {/* Categories */}
           <TabsContent value="categories">
             <CrudSection
-              title="Categorias"
+              title={t("admin.categories")}
               items={store.categories}
               columns={["name"]}
-              columnLabels={["Nome"]}
+              columnLabels={[t("ui.name")]}
               fields={[
-                { key: "name", label: "Nome", required: true },
+                { key: "name", label: t("ui.name"), required: true },
                 { key: "description", label: "Descricao" },
               ]}
               onAdd={(data) => store.addCategory(data as never)}
@@ -199,15 +205,15 @@ export default function AdminPage() {
           {/* Users */}
           <TabsContent value="users">
             <CrudSection
-              title="Usuarios"
+              title={t("admin.users")}
               items={store.users.map((u) => ({
                 ...u,
                 roleLabel: u.role === "gestor" ? "Gestor" : "4o Arbitro",
               }))}
               columns={["name", "email", "roleLabel"]}
-              columnLabels={["Nome", "Email", "Perfil"]}
+              columnLabels={[t("ui.name"), "Email", "Perfil"]}
               fields={[
-                { key: "name", label: "Nome", required: true },
+                { key: "name", label: t("ui.name"), required: true },
                 { key: "email", label: "Email", required: true },
                 {
                   key: "role",
@@ -224,9 +230,152 @@ export default function AdminPage() {
               onDelete={(id) => store.deleteUser(id)}
             />
           </TabsContent>
+
+          {/* Organizing Entities */}
+          <TabsContent value="entities">
+            <EntitiesSection
+              t={t}
+              items={store.organizingEntities}
+              onAdd={(data) => store.addOrganizingEntity(data as never)}
+              onDelete={(id) => store.deleteOrganizingEntity(id)}
+            />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+// --- Entities Section ---
+
+interface EntitiesSectionProps {
+  t: (key: string) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  items: any[];
+  onAdd: (data: Record<string, string>) => Promise<string | void>;
+  onDelete: (id: string) => Promise<void>;
+}
+
+function EntitiesSection({ t, items, onAdd, onDelete }: EntitiesSectionProps) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [acronym, setAcronym] = useState("");
+  const [level, setLevel] = useState<EntityLevel>("national");
+  const [country, setCountry] = useState("");
+  const [region, setRegion] = useState("");
+
+  const handleAdd = async () => {
+    if (!name || !acronym || !level) return;
+    await onAdd({ name, acronym, level, country, region });
+    setName(""); setAcronym(""); setLevel("national"); setCountry(""); setRegion("");
+    setOpen(false);
+  };
+
+  const levelOptions: { value: EntityLevel; labelKey: string }[] = [
+    { value: "world", labelKey: "entity.world" },
+    { value: "continental", labelKey: "entity.continental" },
+    { value: "national", labelKey: "entity.national" },
+    { value: "state", labelKey: "entity.state" },
+    { value: "regional", labelKey: "entity.regional" },
+  ];
+
+  const LEVEL_LABEL: Record<EntityLevel, string> = {
+    world: t("entity.world"),
+    continental: t("entity.continental"),
+    national: t("entity.national"),
+    state: t("entity.state"),
+    regional: t("entity.regional"),
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{t("admin.entities")}</CardTitle>
+        <Button size="sm" onClick={() => setOpen(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          {t("ui.add")}
+        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("admin.entities")}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1">
+                <Label>{t("ui.name")} *</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("ui.name")} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("ui.acronym")} *</Label>
+                <Input value={acronym} onChange={(e) => setAcronym(e.target.value)} placeholder={t("ui.acronym")} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("entity.level")} *</Label>
+                <Select value={level} onValueChange={(v) => setLevel(v as EntityLevel)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levelOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{t(o.labelKey)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>{t("entity.country")}</Label>
+                <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder={t("entity.country")} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("entity.region")}</Label>
+                <Input value={region} onChange={(e) => setRegion(e.target.value)} placeholder={t("entity.region")} />
+              </div>
+              <Button className="w-full mt-2" onClick={handleAdd}>
+                {t("ui.save")}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {items.length === 0 ? (
+          <p className="text-muted-foreground text-sm text-center py-8">
+            {t("ui.no_results")}
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("ui.name")}</TableHead>
+                <TableHead>{t("ui.acronym")}</TableHead>
+                <TableHead>{t("entity.level")}</TableHead>
+                <TableHead>{t("entity.country")}</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id as string}>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.acronym}</TableCell>
+                  <TableCell>{LEVEL_LABEL[item.level as EntityLevel] ?? item.level}</TableCell>
+                  <TableCell>{item.country ?? "—"}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(item.id as string)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -367,3 +516,6 @@ function CrudSection({
     </Card>
   );
 }
+
+// Suppress unused type import warning
+type _UserRole = UserRole;

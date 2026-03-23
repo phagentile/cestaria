@@ -4,10 +4,24 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useMatchStore } from "@/stores/match-store";
 import { db } from "@/lib/db";
 import type { Match, MatchStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleToggle } from "@/components/locale-toggle";
+import { useI18n } from "@/lib/i18n";
 import {
   LogOut,
   Plus,
@@ -16,15 +30,9 @@ import {
   Search,
   X,
   Trophy,
+  Pencil,
+  Trash2,
 } from "lucide-react";
-
-const STATUS_LABEL: Record<string, string> = {
-  scheduled: "Agendada",
-  confirmed: "Confirmada",
-  live: "Ao Vivo",
-  finished: "Encerrada",
-  reopened: "Reaberta",
-};
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: "bg-gray-500/20 text-gray-300 border border-gray-500/30",
@@ -40,9 +48,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, logout, hasPermission } = useAuthStore();
   const { clubs, loadAll } = useAdminStore();
+  const { deleteMatch } = useMatchStore();
+  const { t } = useI18n();
   const [matches, setMatches] = useState<Match[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<MatchStatus | "all">("all");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -79,6 +90,12 @@ export default function DashboardPage() {
     return result;
   }, [matches, statusFilter, search, clubs]);
 
+  const handleDelete = async (id: string) => {
+    await deleteMatch(id);
+    setMatches((prev) => prev.filter((m) => m.id !== id));
+    setDeletingId(null);
+  };
+
   if (!user) return null;
 
   return (
@@ -90,13 +107,15 @@ export default function DashboardPage() {
             <Trophy className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[var(--foreground)]">Cestaria</h1>
+            <h1 className="text-lg font-bold text-[var(--foreground)]">{t("app.name")}</h1>
             <p className="text-xs text-[var(--muted-foreground)]">
               {user.name} — {user.role === "gestor" ? "Gestor" : "4o Arbitro"}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <LocaleToggle />
+          <ThemeToggle />
           {hasPermission("manage_master_data") && (
             <Button
               variant="outline"
@@ -104,7 +123,7 @@ export default function DashboardPage() {
               onClick={() => router.push("/admin")}
             >
               <Settings className="w-4 h-4 mr-1" />
-              Cadastros
+              {t("nav.admin")}
             </Button>
           )}
           <Button
@@ -116,7 +135,7 @@ export default function DashboardPage() {
             }}
           >
             <LogOut className="w-4 h-4 mr-1" />
-            Sair
+            {t("nav.logout")}
           </Button>
         </div>
       </header>
@@ -125,11 +144,11 @@ export default function DashboardPage() {
       <main className="max-w-6xl mx-auto p-4 space-y-4 animate-fade-in-up">
         {/* Title + New Match */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Partidas</h2>
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">{t("nav.dashboard")}</h2>
           {hasPermission("create_match") && (
             <Button onClick={() => router.push("/match/new")}>
               <Plus className="w-4 h-4 mr-1" />
-              Nova Partida
+              {t("match.new")}
             </Button>
           )}
         </div>
@@ -140,7 +159,7 @@ export default function DashboardPage() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
               <Input
-                placeholder="Buscar por equipe, competicao, local..."
+                placeholder={t("ui.search")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -156,7 +175,7 @@ export default function DashboardPage() {
                 }}
               >
                 <X className="w-4 h-4 mr-1" />
-                Limpar
+                {t("ui.close")}
               </Button>
             )}
           </div>
@@ -184,7 +203,7 @@ export default function DashboardPage() {
                       : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
                   }`}
                 >
-                  {STATUS_LABEL[s]} ({count})
+                  {t("status." + s)} ({count})
                 </button>
               );
             })}
@@ -195,8 +214,8 @@ export default function DashboardPage() {
         {filteredMatches.length === 0 ? (
           <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] py-12 text-center text-[var(--muted-foreground)]">
             {matches.length === 0
-              ? `Nenhuma partida criada.${hasPermission("create_match") ? " Clique em 'Nova Partida' para comecar." : ""}`
-              : "Nenhuma partida encontrada com os filtros atuais."}
+              ? `${t("match.no_matches")}${hasPermission("create_match") ? ` ${t("nav.new_match")}.` : ""}`
+              : t("match.no_matches")}
           </div>
         ) : (
           <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] overflow-hidden">
@@ -208,19 +227,19 @@ export default function DashboardPage() {
                       Encontro
                     </th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">
-                      Competicao
+                      {t("match.competition")}
                     </th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden sm:table-cell">
-                      Data
+                      {t("match.date")}
                     </th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden lg:table-cell">
-                      Local
+                      {t("match.venue")}
                     </th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
                       Status
                     </th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                      Acao
+                      {t("ui.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -249,7 +268,7 @@ export default function DashboardPage() {
                         {m.competitionName ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)] hidden sm:table-cell">
-                        {m.matchDate ?? "Sem data"}
+                        {m.matchDate ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)] hidden lg:table-cell truncate max-w-[200px]">
                         {m.venue ?? "—"}
@@ -260,21 +279,52 @@ export default function DashboardPage() {
                             STATUS_STYLES[m.status] ?? STATUS_STYLES.scheduled
                           }`}
                         >
-                          {STATUS_LABEL[m.status] ?? m.status}
+                          {t("status." + m.status)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/match/${m.id}`);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/match/${m.id}`);
+                            }}
+                            title={t("ui.view")}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {hasPermission("create_match") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/match/${m.id}/edit`);
+                              }}
+                              title={t("ui.edit")}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {hasPermission("manage_master_data") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingId(m.id);
+                              }}
+                              title={t("match.delete")}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -284,6 +334,25 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("match.delete_confirm")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("match.delete_confirm_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("ui.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deletingId) handleDelete(deletingId); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("ui.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
