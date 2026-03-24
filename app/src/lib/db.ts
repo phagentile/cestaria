@@ -76,6 +76,35 @@ class CestariaDB extends Dexie {
       auditLog: 'id, entity, entityId, timestamp',
       organizingEntities: 'id, name, level, parentId',
     });
+
+    // version 3: password field added to users (no store schema change needed, Dexie stores all fields)
+    this.version(3).stores({
+      users: 'id, email, role',
+      confederations: 'id, name',
+      federations: 'id, name, confederationId',
+      clubs: 'id, name, federationId',
+      referees: 'id, name, federationId',
+      categories: 'id, name',
+      gameTypes: 'id, name',
+      matches: 'id, status, matchDate, homeClubId, awayClubId',
+      matchRoster: 'id, matchId, clubId, role',
+      matchReferees: 'id, matchId, refereeId',
+      matchEvents: 'id, matchId, eventType, minute, deletedAt',
+      disciplinaryClocks: 'id, matchId, eventId, status',
+      medicalClocks: 'id, matchId, eventId, status',
+      penaltyShootout: 'id, matchId, round, clubId',
+      auditLog: 'id, entity, entityId, timestamp',
+      organizingEntities: 'id, name, level, parentId',
+    }).upgrade(async (tx) => {
+      // Backfill password for existing users
+      await tx.table('users').toCollection().modify((user) => {
+        if (!user.password) {
+          user.password = 'admin123';
+        }
+        // Normalize email to lowercase
+        if (user.email) user.email = user.email.toLowerCase();
+      });
+    });
   }
 }
 
@@ -122,12 +151,22 @@ export async function seedDefaults() {
   // Seed default admin user if empty
   const userCount = await db.users.count();
   if (userCount === 0) {
-    await db.users.add({
-      id: 'user-admin',
-      email: 'admin@cestaria.app',
-      name: 'Administrador',
-      role: 'gestor',
-    });
+    await db.users.bulkAdd([
+      {
+        id: 'user-admin',
+        email: 'admin@rugbymatchpro.app'.toLowerCase(),
+        password: "[REDACTED]",
+        name: 'Administrador',
+        role: 'gestor',
+      },
+      {
+        id: 'user-teste',
+        email: 'teste@teste.com',
+        password: "[REDACTED]",
+        name: 'Usuário Teste',
+        role: 'gestor',
+      },
+    ]);
   }
 
   // Seed default organizing entities if empty

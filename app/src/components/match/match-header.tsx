@@ -200,7 +200,7 @@ export function MatchHeader() {
               size="sm"
               className="text-blue-400 hover:bg-white/10"
               onClick={handleConfirm}
-              title="Confirmar partida"
+              title={t("status.confirmed")}
             >
               <CheckCircle className="w-4 h-4" />
             </Button>
@@ -215,7 +215,7 @@ export function MatchHeader() {
                   className="text-white hover:bg-white/10"
                   onClick={() => {
                     pauseClock();
-                    toast.info("Relogio pausado");
+                    toast.info(t("clock.edit"));
                   }}
                 >
                   <Pause className="w-4 h-4" />
@@ -227,7 +227,7 @@ export function MatchHeader() {
                   className="text-green-400 hover:bg-white/10"
                   onClick={() => {
                     startClock();
-                    toast.success("Relogio iniciado");
+                    toast.success(t("clock.edit"));
                   }}
                 >
                   <Play className="w-4 h-4" />
@@ -240,9 +240,9 @@ export function MatchHeader() {
                 className="text-white hover:bg-white/10"
                 onClick={() => {
                   nextPeriod();
-                  toast.info("Proximo periodo");
+                  toast.info(t("period.full_time"));
                 }}
-                title="Proximo periodo"
+                title={t("period.full_time")}
               >
                 <SkipForward className="w-4 h-4" />
               </Button>
@@ -251,7 +251,7 @@ export function MatchHeader() {
                 variant="ghost"
                 size="sm"
                 className="text-gray-400 hover:bg-white/10"
-                title="Reset relogio"
+                title={t("header.reset_title")}
                 onClick={() => setShowReset(true)}
               >
                 <RotateCcw className="w-4 h-4" />
@@ -261,7 +261,7 @@ export function MatchHeader() {
                 variant="ghost"
                 size="sm"
                 className="text-red-400 hover:bg-white/10"
-                title="Encerrar partida"
+                title={t("header.close_title")}
                 onClick={() => setShowClose(true)}
               >
                 <Square className="w-4 h-4" />
@@ -276,7 +276,7 @@ export function MatchHeader() {
               className="text-yellow-400 hover:bg-white/10"
               onClick={() => setShowReopen(true)}
             >
-              Reabrir
+              {t("header.reopen_confirm")}
             </Button>
           )}
         </div>
@@ -286,15 +286,15 @@ export function MatchHeader() {
       <AlertDialog open={showReset} onOpenChange={setShowReset}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Resetar relogio?</AlertDialogTitle>
+            <AlertDialogTitle>{t("header.reset_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              O relogio sera resetado para o inicio do periodo atual.
+              {t("header.reset_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("ui.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleResetClock}>
-              Confirmar Reset
+              {t("header.reset_confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -304,24 +304,23 @@ export function MatchHeader() {
       <AlertDialog open={showClose} onOpenChange={setShowClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Encerrar partida?</AlertDialogTitle>
+            <AlertDialogTitle>{t("header.close_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              A partida sera encerrada e todas as alteracoes serao bloqueadas.
-              Voce podera reabrir depois se necessario.
+              {t("header.close_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("ui.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (user) {
                   closeMatch(user.id);
-                  toast.success("Partida encerrada");
+                  toast.success(t("status.finished"));
                 }
                 setShowClose(false);
               }}
             >
-              Encerrar
+              {t("header.close_confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -331,24 +330,23 @@ export function MatchHeader() {
       <AlertDialog open={showReopen} onOpenChange={setShowReopen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reabrir partida?</AlertDialogTitle>
+            <AlertDialogTitle>{t("header.reopen_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              A partida sera reaberta para edicao. Esta acao sera registrada no
-              log de auditoria.
+              {t("header.reopen_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("ui.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (user) {
                   reopenMatch(user.id);
-                  toast.info("Partida reaberta");
+                  toast.info(t("header.reopen_confirm"));
                 }
                 setShowReopen(false);
               }}
             >
-              Reabrir
+              {t("header.reopen_confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

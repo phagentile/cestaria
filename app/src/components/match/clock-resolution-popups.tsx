@@ -19,6 +19,7 @@
 import { useState } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import type { ClockPending } from "@/stores/match-store";
 import {
   Dialog,
@@ -48,6 +49,7 @@ function DisciplinaryExpiredPopup({
 }) {
   const { roster, returnFromCard } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
   const [inRosterId, setInRosterId] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -66,7 +68,7 @@ function DisciplinaryExpiredPopup({
 
   const handleConfirm = async () => {
     if (isTempRed && !inRosterId && availableReserves.length > 0) {
-      toast.error("Selecione quem vai entrar no lugar");
+      toast.error(t("popup.disciplinary.select_reserve"));
       return;
     }
     setBusy(true);
@@ -103,15 +105,12 @@ function DisciplinaryExpiredPopup({
             <div className="w-5 h-7 rounded-sm bg-[var(--rugby-red-card)] shadow" />
           )}
           <DialogTitle>
-            {isYellow ? "Cartão Amarelo Expirado" : "Vermelho Temporário Expirado"}
+            {isYellow ? t("popup.disciplinary.yellow_title") : t("popup.disciplinary.tempred_title")}
           </DialogTitle>
         </div>
         <DialogDescription>
-          Tempo de suspensão esgotado para{" "}
-          <strong>
-            #{outPlayer?.shirtNumber} {outPlayer?.playerName}
-          </strong>{" "}
-          ({club?.acronym}).
+          {isYellow ? t("popup.disciplinary.yellow_desc") : t("popup.disciplinary.tempred_desc")}{" "}
+          <strong>#{outPlayer?.shirtNumber} {outPlayer?.playerName}</strong> ({club?.acronym}).
         </DialogDescription>
       </DialogHeader>
 
@@ -120,13 +119,8 @@ function DisciplinaryExpiredPopup({
           <div className="flex items-start gap-3 bg-[var(--rugby-yellow-card)]/10 border border-[var(--rugby-yellow-card)]/30 rounded-lg p-3">
             <UserCheck className="w-5 h-5 text-[var(--rugby-yellow-card)] mt-0.5 shrink-0" />
             <div className="text-sm">
-              <p className="font-semibold text-[var(--foreground)]">
-                Retorno ao campo
-              </p>
-              <p className="text-[var(--muted-foreground)] mt-0.5">
-                O atleta está liberado para retornar imediatamente ao campo.
-                Um evento de retorno será registrado na timeline.
-              </p>
+              <p className="font-semibold text-[var(--foreground)]">{t("popup.disciplinary.confirm_return")}</p>
+              <p className="text-[var(--muted-foreground)] mt-0.5">{t("popup.disciplinary.yellow_desc")}</p>
             </div>
           </div>
         )}
@@ -136,25 +130,17 @@ function DisciplinaryExpiredPopup({
             <div className="flex items-start gap-3 bg-[var(--rugby-red-card)]/10 border border-[var(--rugby-red-card)]/30 rounded-lg p-3">
               <AlertTriangle className="w-5 h-5 text-[var(--rugby-red-card)] mt-0.5 shrink-0" />
               <div className="text-sm">
-                <p className="font-semibold text-[var(--foreground)]">
-                  Substituição permanente obrigatória
-                </p>
-                <p className="text-[var(--muted-foreground)] mt-0.5">
-                  No Vermelho Temporário, ao término o atleta é definitivamente
-                  substituído. Selecione quem entra no lugar.
-                </p>
+                <p className="font-semibold text-[var(--foreground)]">{t("popup.disciplinary.confirm_sub")}</p>
+                <p className="text-[var(--muted-foreground)] mt-0.5">{t("popup.disciplinary.tempred_desc")}</p>
               </div>
             </div>
 
             {availableReserves.length > 0 ? (
               <div className="space-y-1.5">
-                <Label>Quem entra no lugar de #{outPlayer?.shirtNumber}?</Label>
-                <Select
-                  value={inRosterId}
-                  onValueChange={(v) => setInRosterId(v ?? "")}
-                >
+                <Label>{t("popup.disciplinary.select_reserve")} #{outPlayer?.shirtNumber}?</Label>
+                <Select value={inRosterId} onValueChange={(v) => setInRosterId(v ?? "")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o atleta" />
+                    <SelectValue placeholder={t("popup.disciplinary.select_reserve")} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableReserves.map((r) => (
@@ -168,7 +154,7 @@ function DisciplinaryExpiredPopup({
             ) : (
               <div className="flex items-center gap-2 bg-[var(--muted)]/50 rounded-lg px-3 py-2 text-sm text-[var(--muted-foreground)]">
                 <UserX className="w-4 h-4 shrink-0" />
-                Sem reservas disponíveis — o atleta retorna ao campo mesmo assim.
+                {t("popup.disciplinary.yellow_desc")}
               </div>
             )}
           </div>
@@ -179,13 +165,7 @@ function DisciplinaryExpiredPopup({
           onClick={handleConfirm}
           disabled={busy || (isTempRed && availableReserves.length > 0 && !inRosterId)}
         >
-          {busy
-            ? "Registrando..."
-            : isYellow
-            ? "Confirmar Retorno"
-            : inRosterId
-            ? "Confirmar Substituição"
-            : "Confirmar Retorno"}
+          {busy ? t("ui.saving") : isYellow ? t("popup.disciplinary.confirm_return") : inRosterId ? t("popup.disciplinary.confirm_sub") : t("popup.disciplinary.confirm_return")}
         </Button>
       </div>
     </DialogContent>
@@ -201,6 +181,7 @@ function MedicalExpiredPopup({
 }) {
   const { roster, resolveMedical } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
   const [decision, setDecision] = useState<"return" | "keep" | null>(null);
   const [substitutoId, setSubstitutoId] = useState(""); // quem saiu temporariamente (que vai sair)
   const [busy, setBusy] = useState(false);
@@ -227,7 +208,7 @@ function MedicalExpiredPopup({
   const handleConfirm = async () => {
     if (!decision) return;
     if (decision === "return" && activePlayers.length > 0 && !substitutoId) {
-      toast.error("Selecione qual substituto vai sair");
+      toast.error(t("popup.medical.select_exits"));
       return;
     }
     setBusy(true);
@@ -253,14 +234,10 @@ function MedicalExpiredPopup({
       <DialogHeader>
         <div className="flex items-center gap-2 mb-1">
           <Heart className="w-5 h-5 text-cyan-400" />
-          <DialogTitle>Relógio Médico Esgotado — {typeLabel}</DialogTitle>
+          <DialogTitle>{t("popup.medical.title")} — {typeLabel}</DialogTitle>
         </div>
         <DialogDescription>
-          Tempo de avaliação médica encerrado para{" "}
-          <strong>
-            #{outPlayer?.shirtNumber} {outPlayer?.playerName}
-          </strong>{" "}
-          ({club?.acronym}). Defina o que acontece com o atleta.
+          <strong>#{outPlayer?.shirtNumber} {outPlayer?.playerName}</strong> ({club?.acronym})
         </DialogDescription>
       </DialogHeader>
 
@@ -279,13 +256,8 @@ function MedicalExpiredPopup({
               className={`w-5 h-5 mt-0.5 shrink-0 ${decision === "keep" ? "text-red-400" : "text-[var(--muted-foreground)]"}`}
             />
             <div>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                Manter substituição (motivo de saúde)
-              </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                O atleta não está em condições de retornar. A substituição
-                se torna permanente.
-              </p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{t("popup.medical.keep_sub")}</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{t("popup.medical.keep_sub_desc")}</p>
             </div>
           </div>
         </button>
@@ -304,13 +276,8 @@ function MedicalExpiredPopup({
               className={`w-5 h-5 mt-0.5 shrink-0 ${decision === "return" ? "text-[var(--rugby-try)]" : "text-[var(--muted-foreground)]"}`}
             />
             <div>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                Atleta liberado — retorna ao campo
-              </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                O médico liberou o atleta. Ele retorna e o substituto
-                temporário sai.
-              </p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{t("popup.medical.return_athlete")}</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{t("popup.medical.return_athlete_desc")}</p>
             </div>
           </div>
         </button>
@@ -318,13 +285,10 @@ function MedicalExpiredPopup({
         {/* Se retornar: selecionar qual substituto sai */}
         {decision === "return" && activePlayers.length > 0 && (
           <div className="space-y-1.5 pl-1">
-            <Label>Qual substituto temporário vai sair?</Label>
-            <Select
-              value={substitutoId}
-              onValueChange={(v) => setSubstitutoId(v ?? "")}
-            >
+            <Label>{t("popup.medical.select_exits")}</Label>
+            <Select value={substitutoId} onValueChange={(v) => setSubstitutoId(v ?? "")}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
+                <SelectValue placeholder={t("popup.medical.select_exits")} />
               </SelectTrigger>
               <SelectContent>
                 {activePlayers.map((r) => (
@@ -346,7 +310,7 @@ function MedicalExpiredPopup({
             (decision === "return" && activePlayers.length > 0 && !substitutoId)
           }
         >
-          {busy ? "Registrando..." : "Confirmar"}
+          {busy ? t("ui.saving") : t("ui.confirm")}
         </Button>
       </div>
     </DialogContent>
