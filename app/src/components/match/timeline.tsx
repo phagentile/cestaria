@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import { EVENT_LABELS } from "@/types";
 import type { MatchEvent, EventType } from "@/types";
 import { formatMinSec } from "@/lib/format";
@@ -99,6 +100,7 @@ function EventIcon({ type }: { type: EventType }) {
 export function Timeline() {
   const { match, events, roster, deleteEvent } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<MatchEvent | null>(null);
 
@@ -133,12 +135,12 @@ export function Timeline() {
   return (
     <div className="mt-2">
       <div className="text-xs font-medium text-[var(--muted-foreground)] mb-3">
-        TIMELINE ({activeEvents.length} eventos)
+        {t("timeline.title")} ({activeEvents.length} {t("timeline.events")})
       </div>
 
       {activeEvents.length === 0 && (
         <p className="text-sm text-[var(--muted-foreground)] text-center py-8">
-          Nenhum evento registrado.
+          {t("timeline.no_events")}
         </p>
       )}
 
@@ -245,7 +247,7 @@ export function Timeline() {
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 hover:bg-[var(--accent)]"
-                        title="Editar evento"
+                        title={t("ui.edit")}
                         onClick={() => setEditingEvent(event)}
                       >
                         <Pencil className="w-3 h-3" />
@@ -254,7 +256,7 @@ export function Timeline() {
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-destructive"
-                        title="Excluir evento"
+                        title={t("ui.delete")}
                         onClick={() => setDeleteId(event.id)}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -278,15 +280,15 @@ export function Timeline() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir evento?</AlertDialogTitle>
+            <AlertDialogTitle>{t("timeline.delete_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              O evento sera excluido e o placar recalculado automaticamente.
+              {t("timeline.delete_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("ui.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>
-              Excluir
+              {t("ui.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -32,6 +32,7 @@
 import { useState, useEffect } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import type { MatchEvent } from "@/types";
 import {
   EVENT_LABELS,
@@ -82,6 +83,7 @@ const SUB_TYPES = new Set(["substitution_out", "substitution_in"]);
 export function EventEditDialog({ event, onClose }: Props) {
   const { match, roster, editEvent } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
 
   // ── Tempo ──────────────────────────────────────────────────
   const [minute, setMinute] = useState("");
@@ -160,7 +162,7 @@ export function EventEditDialog({ event, onClose }: Props) {
       }
 
       await editEvent(event.id, updates);
-      toast.success("Evento atualizado");
+      toast.success(t("event_edit.save"));
       onClose();
     } finally {
       setBusy(false);
@@ -175,7 +177,7 @@ export function EventEditDialog({ event, onClose }: Props) {
             <span>{EVENT_LABELS[event.eventType]}</span>
           </DialogTitle>
           <DialogDescription>
-            Edite os dados do evento. Alterações recalculam o placar automaticamente.
+            {t("event_edit.changes_note")}
           </DialogDescription>
         </DialogHeader>
 
@@ -185,12 +187,12 @@ export function EventEditDialog({ event, onClose }: Props) {
             <div className="flex items-center gap-1.5 mb-2">
               <Clock className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
-                Tempo do evento
+                {t("event_edit.time")}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Minuto</Label>
+                <Label>{t("event_edit.minute")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -199,7 +201,7 @@ export function EventEditDialog({ event, onClose }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label>Segundo</Label>
+                <Label>{t("event_edit.second")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -214,17 +216,17 @@ export function EventEditDialog({ event, onClose }: Props) {
           {/* ── Time ── (score, cartão, substituição) */}
           {(isScore || isCard || isSub) && (
             <div className="space-y-1">
-              <Label>Time *</Label>
+              <Label>{t("event_edit.team")} *</Label>
               <Select value={clubId} onValueChange={(v) => { setClubId(v ?? ""); setRosterId(""); }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o time" />
+                  <SelectValue placeholder={t("ui.search")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={match.homeClubId}>
-                    {homeClub?.name ?? "Casa"}
+                    {homeClub?.name ?? t("match.home_short")}
                   </SelectItem>
                   <SelectItem value={match.awayClubId}>
-                    {awayClub?.name ?? "Visitante"}
+                    {awayClub?.name ?? t("match.away_short")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -234,13 +236,13 @@ export function EventEditDialog({ event, onClose }: Props) {
           {/* ── Jogador ── (score sem penalty_try, cartão, substituição) */}
           {(isScore && !isPenaltyTry && clubId) && (
             <div className="space-y-1">
-              <Label>Jogador</Label>
+              <Label>{t("event_edit.player")}</Label>
               <Select value={rosterId} onValueChange={(v) => setRosterId(v ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o jogador" />
+                  <SelectValue placeholder={t("ui.search")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Sem jogador —</SelectItem>
+                  <SelectItem value="">{t("event_edit.no_player")}</SelectItem>
                   {activeForClub(clubId).map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       #{r.shirtNumber} {r.playerName}
@@ -253,10 +255,10 @@ export function EventEditDialog({ event, onClose }: Props) {
 
           {(isCard && clubId) && (
             <div className="space-y-1">
-              <Label>Atleta / Staff *</Label>
+              <Label>{t("event_edit.athlete_staff")} *</Label>
               <Select value={rosterId} onValueChange={(v) => setRosterId(v ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder={t("ui.search")} />
                 </SelectTrigger>
                 <SelectContent>
                   {allRosterForClub(clubId).map((r) => (
@@ -272,10 +274,10 @@ export function EventEditDialog({ event, onClose }: Props) {
 
           {(isSub && clubId) && (
             <div className="space-y-1">
-              <Label>Atleta *</Label>
+              <Label>{t("event_edit.athlete")} *</Label>
               <Select value={rosterId} onValueChange={(v) => setRosterId(v ?? "")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder={t("ui.search")} />
                 </SelectTrigger>
                 <SelectContent>
                   {allRosterForClub(clubId).map((r) => (
@@ -292,10 +294,10 @@ export function EventEditDialog({ event, onClose }: Props) {
           {isCard && (
             <>
               <div className="space-y-1">
-                <Label>Motivo (Lei 9) *</Label>
+                <Label>{t("event_edit.law9_reason")} *</Label>
                 <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o motivo" />
+                    <SelectValue placeholder={t("ui.search")} />
                   </SelectTrigger>
                   <SelectContent>
                     {LAW9_REASONS.map((r) => (
@@ -307,11 +309,11 @@ export function EventEditDialog({ event, onClose }: Props) {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Descrição breve</Label>
+                <Label>{t("event_edit.description")}</Label>
                 <Input
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalhes da infração"
+                  placeholder={t("event_edit.infraction_detail")}
                 />
               </div>
             </>
@@ -320,13 +322,13 @@ export function EventEditDialog({ event, onClose }: Props) {
           {/* ── Tipo de Substituição ── */}
           {isSub && (
             <div className="space-y-1">
-              <Label>Tipo de substituição *</Label>
+              <Label>{t("event_edit.sub_type")} *</Label>
               <Select
                 value={subType}
                 onValueChange={(v) => setSubType(v as SubstitutionType)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder={t("ui.search")} />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.entries(SUBSTITUTION_LABELS) as [SubstitutionType, string][]).map(
@@ -344,17 +346,17 @@ export function EventEditDialog({ event, onClose }: Props) {
           {/* ── Aviso para tipos somente-tempo ── */}
           {!isScore && !isCard && !isSub && (
             <p className="text-xs text-[var(--muted-foreground)] italic">
-              Para este tipo de evento só é possível ajustar o tempo.
+              {t("event_edit.time_only")}
             </p>
           )}
 
           {/* ── Ações ── */}
           <div className="flex gap-2 pt-1">
             <Button variant="outline" className="flex-1" onClick={onClose} disabled={busy}>
-              Cancelar
+              {t("ui.cancel")}
             </Button>
             <Button className="flex-1" onClick={handleSave} disabled={busy}>
-              {busy ? "Salvando..." : "Salvar alterações"}
+              {busy ? t("ui.saving") : t("event_edit.save")}
             </Button>
           </div>
         </div>

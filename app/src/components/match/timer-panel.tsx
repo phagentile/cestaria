@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import { formatTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export function TimerPanel() {
     editMedicalClock,
   } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [editMinutes, setEditMinutes] = useState("");
   const [editSeconds, setEditSeconds] = useState("");
@@ -72,7 +74,7 @@ export function TimerPanel() {
       } else {
         await editMedicalClock(editing.clock.id, totalSeconds);
       }
-      toast.success("Tempo do relógio ajustado");
+      toast.success(t("clock.adjust_time"));
       setEditing(null);
     } finally {
       setBusy(false);
@@ -126,7 +128,7 @@ export function TimerPanel() {
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                      title="Ajustar tempo restante"
+                      title={t("clock.adjust_time")}
                       onClick={() => openEdit({ kind: "disciplinary", clock })}
                     >
                       <Pencil className="w-3 h-3" />
@@ -184,7 +186,7 @@ export function TimerPanel() {
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                      title="Ajustar tempo restante"
+                      title={t("clock.adjust_time")}
                       onClick={() => openEdit({ kind: "medical", clock })}
                     >
                       <Pencil className="w-3 h-3" />
@@ -202,34 +204,22 @@ export function TimerPanel() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              Ajustar tempo restante
+              {t("clock.adjust_time")}
             </DialogTitle>
             <DialogDescription>
               {editing?.kind === "disciplinary"
-                ? `Relógio disciplinar — ${editing.clock.clockType === "yellow" ? "Cartão Amarelo" : "Vermelho Temporário"}`
-                : `Relógio médico — ${
-                    editing?.clock.clockType === "blood"
-                      ? "Sangue"
-                      : editing?.clock.clockType === "hia"
-                        ? "HIA"
-                        : "Sangue+HIA"
-                  }`}
+                ? (editing.clock.clockType === "yellow" ? t("timer.adjust_disc") : t("timer.adjust_disc_red"))
+                : t("timer.adjust_medical")}
               {(() => {
-                const player = editing ? getPlayer(
-                  editing.kind === "disciplinary"
-                    ? editing.clock.rosterId
-                    : editing.clock.rosterId
-                ) : null;
-                return player
-                  ? ` — #${player.shirtNumber} ${player.playerName}`
-                  : "";
+                const player = editing ? getPlayer(editing.clock.rosterId) : null;
+                return player ? ` — #${player.shirtNumber} ${player.playerName}` : "";
               })()}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Minutos restantes</Label>
+                <Label>{t("timer.minutes_remaining")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -238,7 +228,7 @@ export function TimerPanel() {
                 />
               </div>
               <div className="space-y-1">
-                <Label>Segundos restantes</Label>
+                <Label>{t("timer.seconds_remaining")}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -249,9 +239,7 @@ export function TimerPanel() {
               </div>
             </div>
             <div className="text-xs text-[var(--muted-foreground)]">
-              {editing?.kind === "disciplinary"
-                ? "O relógio disciplinar conta em tempo de jogo (para quando o relógio principal para)."
-                : "O relógio médico corre em tempo real independente do jogo."}
+              {editing?.kind === "disciplinary" ? t("clock.game_time_note") : t("clock.real_time_note")}
             </div>
             <div className="flex gap-2">
               <Button
@@ -260,10 +248,10 @@ export function TimerPanel() {
                 onClick={() => setEditing(null)}
                 disabled={busy}
               >
-                Cancelar
+                {t("ui.cancel")}
               </Button>
               <Button className="flex-1" onClick={handleSave} disabled={busy}>
-                {busy ? "Salvando..." : "Salvar"}
+                {busy ? t("ui.saving") : t("ui.save")}
               </Button>
             </div>
           </div>

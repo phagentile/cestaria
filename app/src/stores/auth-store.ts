@@ -7,6 +7,7 @@ interface AuthState {
   user: User | null;
   setUser: (user: User | null) => void;
   login: (userId: string) => Promise<boolean>;
+  loginWithPassword: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -36,6 +37,14 @@ export const useAuthStore = create<AuthState>()(
       login: async (userId: string) => {
         const user = await db.users.get(userId);
         if (user) {
+          set({ user });
+          return true;
+        }
+        return false;
+      },
+      loginWithPassword: async (email: string, password: string) => {
+        const user = await db.users.where('email').equals(email.trim().toLowerCase()).first();
+        if (user && user.password === password) {
           set({ user });
           return true;
         }
