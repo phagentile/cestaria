@@ -155,18 +155,18 @@ export default function AdminPage() {
               title={t("admin.referees")}
               items={store.referees}
               columns={["name", "usualRole"]}
-              columnLabels={[t("ui.name"), "Funcao"]}
+              columnLabels={[t("ui.name"), t("admin.usual_role")]}
               fields={[
                 { key: "name", label: t("ui.name"), required: true },
                 {
                   key: "usualRole",
-                  label: "Funcao",
+                  label: t("admin.usual_role"),
                   type: "select",
                   options: [
-                    { value: "central", label: "Central" },
-                    { value: "ar", label: "Assistente" },
+                    { value: "central", label: t("ref.central") },
+                    { value: "ar", label: t("ref.ar1") },
                     { value: "tmo", label: "TMO" },
-                    { value: "fourth", label: "4o Arbitro" },
+                    { value: "fourth", label: t("ref.fourth_official") },
                   ],
                   required: true,
                 },
@@ -195,7 +195,7 @@ export default function AdminPage() {
               columnLabels={[t("ui.name")]}
               fields={[
                 { key: "name", label: t("ui.name"), required: true },
-                { key: "description", label: "Descricao" },
+                { key: "description", label: t("admin.description") },
               ]}
               onAdd={(data) => store.addCategory(data as never)}
               onDelete={(id) => store.deleteCategory(id)}
@@ -208,20 +208,20 @@ export default function AdminPage() {
               title={t("admin.users")}
               items={store.users.map((u) => ({
                 ...u,
-                roleLabel: u.role === "gestor" ? "Gestor" : "4o Arbitro",
+                roleLabel: t("role." + u.role),
               }))}
               columns={["name", "email", "roleLabel"]}
-              columnLabels={[t("ui.name"), "Email", "Perfil"]}
+              columnLabels={[t("ui.name"), t("auth.email"), t("admin.user_role")]}
               fields={[
                 { key: "name", label: t("ui.name"), required: true },
-                { key: "email", label: "Email", required: true },
+                { key: "email", label: t("auth.email"), required: true },
                 {
                   key: "role",
-                  label: "Perfil",
+                  label: t("admin.user_role"),
                   type: "select",
                   options: [
-                    { value: "gestor", label: "Gestor" },
-                    { value: "quarto_arbitro", label: "4o Arbitro" },
+                    { value: "gestor", label: t("role.gestor") },
+                    { value: "quarto_arbitro", label: t("role.quarto_arbitro") },
                   ],
                   required: true,
                 },

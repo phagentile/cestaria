@@ -109,7 +109,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-lg font-bold text-[var(--foreground)]">{t("app.name")}</h1>
             <p className="text-xs text-[var(--muted-foreground)]">
-              {user.name} — {user.role === "gestor" ? "Gestor" : "4o Arbitro"}
+              {user.name} — {t("role." + user.role)}
             </p>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                   : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
               }`}
             >
-              Todos ({matches.length})
+              {t("dashboard.all")} ({matches.length})
             </button>
             {STATUS_FILTERS.map((s) => {
               const count = matches.filter((m) => m.status === s).length;
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--muted)]/30">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                      Encontro
+                      {t("dashboard.matchup")}
                     </th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">
                       {t("match.competition")}
@@ -236,7 +236,7 @@ export default function DashboardPage() {
                       {t("match.venue")}
                     </th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-                      Status
+                      {t("dashboard.status")}
                     </th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
                       {t("ui.actions")}

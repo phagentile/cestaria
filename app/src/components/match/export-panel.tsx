@@ -2,6 +2,7 @@
 
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { EVENT_LABELS } from "@/types";
 import { formatMinSec } from "@/lib/format";
@@ -24,6 +25,8 @@ export function ExportPanel() {
     gameTypes,
     categories,
   } = useAdminStore();
+
+  const { t } = useI18n();
 
   if (!match) return null;
 
@@ -50,16 +53,16 @@ export function ExportPanel() {
     clubId ? clubs.find((c) => c.id === clubId) : null;
 
   const generateTimelineText = () => {
-    let text = `CESTARIA — RELATORIO DE EVENTOS\n`;
+    let text = `RUGBY MATCH PRO — ${t("export.report_events")}\n`;
     text += `${"=".repeat(60)}\n`;
-    text += `${homeClub?.name ?? "Casa"} ${homeScore} x ${awayScore} ${awayClub?.name ?? "Visitante"}\n`;
+    text += `${homeClub?.name ?? t("match.home_short")} ${homeScore} x ${awayScore} ${awayClub?.name ?? t("match.away_short")}\n`;
     if (match.competitionName)
-      text += `Competicao: ${match.competitionName}\n`;
-    if (match.venue) text += `Local: ${match.venue}\n`;
-    if (match.matchDate) text += `Data: ${match.matchDate}\n`;
-    text += `Tipo: ${gameType?.name ?? "—"} | Categoria: ${category?.name ?? "—"}\n`;
+      text += `${t("export.report_competition")}: ${match.competitionName}\n`;
+    if (match.venue) text += `${t("export.report_venue")}: ${match.venue}\n`;
+    if (match.matchDate) text += `${t("export.report_date")}: ${match.matchDate}\n`;
+    text += `${t("export.report_type")}: ${gameType?.name ?? "—"} | ${t("export.report_category")}: ${category?.name ?? "—"}\n`;
     text += `${"=".repeat(60)}\n\n`;
-    text += `TEMPO  | TIME       | EVENTO                          | PLACAR\n`;
+    text += `${t("export.report_col_time").padEnd(6)} | ${t("export.report_col_team").padEnd(10)} | ${t("export.report_col_event").padEnd(33)} | ${t("export.report_col_score")}\n`;
     text += `${"-".repeat(60)}\n`;
 
     let runHome = 0;
@@ -88,9 +91,9 @@ export function ExportPanel() {
   };
 
   const generateSumulaText = () => {
-    let text = `CESTARIA — SUMULA OFICIAL\n`;
+    let text = `RUGBY MATCH PRO — ${t("export.report_sumula")}\n`;
     text += `${"=".repeat(60)}\n\n`;
-    text += `${homeClub?.name ?? "Casa"} ${homeScore} x ${awayScore} ${awayClub?.name ?? "Visitante"}\n`;
+    text += `${homeClub?.name ?? t("match.home_short")} ${homeScore} x ${awayScore} ${awayClub?.name ?? t("match.away_short")}\n`;
     if (shootoutKicks.length > 0) {
       const hk = shootoutKicks.filter(
         (k) => k.clubId === match.homeClubId && k.result === "made"
@@ -98,24 +101,24 @@ export function ExportPanel() {
       const ak = shootoutKicks.filter(
         (k) => k.clubId === match.awayClubId && k.result === "made"
       ).length;
-      text += `Penais: (${hk}-${ak})\n`;
+      text += `${t("export.report_shootout")}: (${hk}-${ak})\n`;
     }
     text += `\n`;
     if (match.competitionName)
-      text += `Competicao: ${match.competitionName}\n`;
-    if (category) text += `Categoria: ${category.name}\n`;
-    text += `Tipo: ${gameType?.name ?? "—"}\n`;
-    if (match.venue) text += `Local: ${match.venue}\n`;
-    if (match.matchDate) text += `Data: ${match.matchDate}\n`;
+      text += `${t("export.report_competition")}: ${match.competitionName}\n`;
+    if (category) text += `${t("export.report_category")}: ${category.name}\n`;
+    text += `${t("export.report_type")}: ${gameType?.name ?? "—"}\n`;
+    if (match.venue) text += `${t("export.report_venue")}: ${match.venue}\n`;
+    if (match.matchDate) text += `${t("export.report_date")}: ${match.matchDate}\n`;
     if (match.startTime)
-      text += `Inicio: ${new Date(match.startTime).toLocaleTimeString("pt-BR")}\n`;
+      text += `${t("export.report_start")}: ${new Date(match.startTime).toLocaleTimeString()}\n`;
     if (match.endTime)
-      text += `Fim: ${new Date(match.endTime).toLocaleTimeString("pt-BR")}\n`;
+      text += `${t("export.report_end")}: ${new Date(match.endTime).toLocaleTimeString()}\n`;
     text += `\n`;
 
     for (const [clubId, label] of [
-      [match.homeClubId, homeClub?.name ?? "Casa"],
-      [match.awayClubId, awayClub?.name ?? "Visitante"],
+      [match.homeClubId, homeClub?.name ?? t("match.home_short")],
+      [match.awayClubId, awayClub?.name ?? t("match.away_short")],
     ] as const) {
       text += `${"—".repeat(30)}\n`;
       text += `${label}\n`;
@@ -127,23 +130,19 @@ export function ExportPanel() {
       const staff = teamRoster.filter((r) => r.role === "staff");
 
       if (starters.length > 0) {
-        text += `\nTitulares:\n`;
-        for (const r of starters.sort(
-          (a, b) => a.shirtNumber - b.shirtNumber
-        )) {
+        text += `\n${t("export.report_starters")}:\n`;
+        for (const r of starters.sort((a, b) => a.shirtNumber - b.shirtNumber)) {
           text += `  #${String(r.shirtNumber).padStart(2)} ${r.playerName}${r.position ? ` (${r.position})` : ""}\n`;
         }
       }
       if (reserves.length > 0) {
-        text += `\nReservas:\n`;
-        for (const r of reserves.sort(
-          (a, b) => a.shirtNumber - b.shirtNumber
-        )) {
+        text += `\n${t("export.report_reserves")}:\n`;
+        for (const r of reserves.sort((a, b) => a.shirtNumber - b.shirtNumber)) {
           text += `  #${String(r.shirtNumber).padStart(2)} ${r.playerName}${r.position ? ` (${r.position})` : ""}\n`;
         }
       }
       if (staff.length > 0) {
-        text += `\nComissao Tecnica:\n`;
+        text += `\n${t("export.report_staff")}:\n`;
         for (const r of staff) {
           text += `  ${r.playerName}${r.staffRole ? ` - ${r.staffRole}` : ""}\n`;
         }
@@ -153,7 +152,7 @@ export function ExportPanel() {
 
     if (referees.length > 0) {
       text += `${"—".repeat(30)}\n`;
-      text += `ARBITROS\n`;
+      text += `${t("export.report_referees")}\n`;
       text += `${"—".repeat(30)}\n`;
       for (const ref of referees) {
         const refData = allReferees.find((r) => r.id === ref.refereeId);
@@ -179,30 +178,30 @@ export function ExportPanel() {
       `cestaria_timeline_${match.id.slice(0, 8)}.txt`,
       generateTimelineText()
     );
-    toast.success("Timeline exportada com sucesso");
+    toast.success(t("export.toast_timeline"));
   };
 
   const handleExportSumula = () => {
     download(
-      `cestaria_sumula_${match.id.slice(0, 8)}.txt`,
+      `rmatch_sumula_${match.id.slice(0, 8)}.txt`,
       generateSumulaText()
     );
-    toast.success("Sumula exportada com sucesso");
+    toast.success(t("export.toast_sumula"));
   };
 
   const handleExportComplete = () => {
     const complete = generateSumulaText() + "\n\n" + generateTimelineText();
     download(
-      `cestaria_completo_${match.id.slice(0, 8)}.txt`,
+      `rmatch_completo_${match.id.slice(0, 8)}.txt`,
       complete
     );
-    toast.success("Relatorio completo exportado");
+    toast.success(t("export.toast_complete"));
   };
 
   return (
     <div className="space-y-4 mt-2 animate-fade-in-up">
       <div className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
-        Exportacao
+        {t("export.title")}
       </div>
 
       {/* Criteria check */}
@@ -211,37 +210,19 @@ export function ExportPanel() {
           <AlertTriangle className="w-4 h-4 text-[var(--rugby-yellow-card)] mt-0.5 shrink-0" />
           <div className="text-xs">
             <div className="font-semibold text-[var(--rugby-yellow-card)] mb-1">
-              Criterios de exportacao:
+              {t("export.criteria")}
             </div>
-            <div
-              className={
-                hasMinTime
-                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
-                  : "text-[var(--foreground)]"
-              }
-            >
-              Tempo minimo: {minRequired} min (atual: {clockMinutes} min)
+            <div className={hasMinTime ? "line-through opacity-40 text-[var(--muted-foreground)]" : "text-[var(--foreground)]"}>
+              {t("export.min_time")}: {minRequired} min ({clockMinutes} min)
             </div>
-            <div
-              className={
-                hasStartTime
-                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
-                  : "text-[var(--foreground)]"
-              }
-            >
-              Hora de inicio registrada
+            <div className={hasStartTime ? "line-through opacity-40 text-[var(--muted-foreground)]" : "text-[var(--foreground)]"}>
+              {t("export.start_time")}
             </div>
-            <div
-              className={
-                hasEndTime
-                  ? "line-through opacity-40 text-[var(--muted-foreground)]"
-                  : "text-[var(--foreground)]"
-              }
-            >
-              Hora de fim registrada
+            <div className={hasEndTime ? "line-through opacity-40 text-[var(--muted-foreground)]" : "text-[var(--foreground)]"}>
+              {t("export.end_time")}
             </div>
             <div className="mt-1 text-[var(--muted-foreground)] italic">
-              Voce ainda pode exportar mesmo sem atender todos os criterios.
+              {t("export.can_export")}
             </div>
           </div>
         </div>
@@ -255,9 +236,9 @@ export function ExportPanel() {
         >
           <FileText className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-conversion)]" />
           <div className="text-left flex-1">
-            <div className="text-sm font-medium">Timeline de Eventos</div>
+            <div className="text-sm font-medium">{t("export.timeline_btn")}</div>
             <div className="text-xs text-[var(--muted-foreground)]">
-              Lista cronologica de todos os eventos
+              {t("export.timeline_desc")}
             </div>
           </div>
           <Download className="w-4 h-4 ml-auto shrink-0" />
@@ -270,9 +251,9 @@ export function ExportPanel() {
         >
           <FileCheck className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-try)]" />
           <div className="text-left flex-1">
-            <div className="text-sm font-medium">Sumula Oficial</div>
+            <div className="text-sm font-medium">{t("export.sumula_btn")}</div>
             <div className="text-xs text-[var(--muted-foreground)]">
-              Dados dos clubes, atletas, comissao e arbitros
+              {t("export.sumula_desc")}
             </div>
           </div>
           <Download className="w-4 h-4 ml-auto shrink-0" />
@@ -285,9 +266,9 @@ export function ExportPanel() {
         >
           <FileText className="w-4 h-4 mr-2 shrink-0 text-[var(--rugby-drop)]" />
           <div className="text-left flex-1">
-            <div className="text-sm font-medium">Relatorio Completo</div>
+            <div className="text-sm font-medium">{t("export.complete_btn")}</div>
             <div className="text-xs text-[var(--muted-foreground)]">
-              Sumula + Timeline de eventos
+              {t("export.complete_desc")}
             </div>
           </div>
           <Download className="w-4 h-4 ml-auto shrink-0" />

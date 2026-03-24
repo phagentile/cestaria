@@ -41,33 +41,12 @@ import {
   Pencil,
 } from "lucide-react";
 
-const PERIOD_LABELS: Record<string, string> = {
-  not_started: "Nao Iniciada",
-  first_half: "1o Tempo",
-  half_time: "Intervalo",
-  second_half: "2o Tempo",
-  full_time: "Tempo Regulamentar",
-  extra_time_1: "Prorrogacao 1",
-  extra_time_break: "Intervalo Prorr.",
-  extra_time_2: "Prorrogacao 2",
-  penalties: "Penais",
-  finished: "Encerrada",
-};
-
 const STATUS_STYLES: Record<string, string> = {
   scheduled: "bg-gray-500/20 text-gray-300 border-gray-500/30",
   confirmed: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   live: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse",
   finished: "bg-red-500/20 text-red-300 border-red-500/30",
   reopened: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "Agendada",
-  confirmed: "Confirmada",
-  live: "Ao Vivo",
-  finished: "Encerrada",
-  reopened: "Reaberta",
 };
 
 export function MatchHeader() {
@@ -154,14 +133,25 @@ export function MatchHeader() {
           <span
             className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 ${STATUS_STYLES[match.status] ?? ""}`}
           >
-            {STATUS_LABELS[match.status] ?? match.status}
+            {t("status." + match.status) ?? match.status}
           </span>
         </div>
 
         {/* Center: Clock + Period */}
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            {PERIOD_LABELS[match.period] ?? match.period}
+            {({
+              not_started: t("period.not_started"),
+              first_half: t("period.first_half"),
+              half_time: t("period.half_time"),
+              second_half: t("period.second_half"),
+              full_time: t("period.full_time_reg"),
+              extra_time_1: t("period.extra_first"),
+              extra_time_break: t("period.extra_break"),
+              extra_time_2: t("period.extra_second"),
+              penalties: t("period.shootout"),
+              finished: t("status.finished"),
+            } as Record<string, string>)[match.period] ?? match.period}
           </span>
           <div className="flex items-center gap-1">
             <div className="font-mono text-2xl font-bold tabular-nums">

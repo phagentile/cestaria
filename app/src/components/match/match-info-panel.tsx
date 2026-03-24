@@ -5,20 +5,6 @@ import { useAdminStore } from "@/stores/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { Calendar, MapPin, Clock, Users } from "lucide-react";
 
-const ROLE_LABELS: Record<string, string> = {
-  central: "Arbitro",
-  ar1: "Ajudante 1",
-  ar2: "Ajudante 2",
-  tmo: "TMO",
-  fourth_official: "4o Oficial",
-  judicial_officer: "Oficial Judicial",
-  citing_officer: "Oficial de Citacao",
-  appeals_officer: "Oficial de Apelacoes",
-  match_commissioner: "Comissario",
-  scorer: "Planillero",
-  doctor: "Medico",
-};
-
 export function MatchInfoPanel() {
   const { match, referees } = useMatchStore();
   const { clubs, referees: allReferees, gameTypes, categories, organizingEntities } = useAdminStore();
@@ -100,11 +86,11 @@ export function MatchInfoPanel() {
       <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-2 flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5" />
-          Oficiais
+          {t("info.officials")}
         </h3>
         {referees.length === 0 ? (
           <p className="text-xs text-[var(--muted-foreground)] italic">
-            Nenhum oficial designado.
+            {t("info.no_officials")}
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-y-1.5">
@@ -113,10 +99,10 @@ export function MatchInfoPanel() {
               return (
                 <div key={ref.id} className="flex items-center justify-between gap-2">
                   <span className="text-[10px] text-[var(--muted-foreground)] uppercase shrink-0">
-                    {ROLE_LABELS[ref.roleInMatch] ?? ref.roleInMatch}
+                    {t("ref." + ref.roleInMatch) !== "ref." + ref.roleInMatch ? t("ref." + ref.roleInMatch) : ref.roleInMatch}
                   </span>
                   <span className="text-sm text-[var(--foreground)] font-medium truncate">
-                    {refData?.name ?? "Por designar"}
+                    {refData?.name ?? t("ref.tbd")}
                   </span>
                 </div>
               );
