@@ -8,6 +8,8 @@ interface AuthState {
   setUser: (user: User | null) => void;
   login: (userId: string) => Promise<boolean>;
   loginWithPassword: (email: string, password: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<string | null>; // returns new temp password or null if not found
+  updatePassword: (userId: string, newPassword: string) => Promise<void>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -49,6 +51,19 @@ export const useAuthStore = create<AuthState>()(
           return true;
         }
         return false;
+      },
+      resetPassword: async (email: string) => {
+        const user = await db.users.where('email').equals(email.trim().toLowerCase()).first();
+        if (!user) return null;
+        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        const newPassword = Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        await db.users.update(user.id, { password: newPassword });
+        return newPassword;
+      },
+      updatePassword: async (userId: string, newPassword: string) => {
+        await db.users.update(userId, { password: newPassword });
+        const updated = await db.users.get(userId);
+        if (updated) set({ user: updated });
       },
       logout: () => set({ user: null }),
       hasPermission: (permission: string) => {
