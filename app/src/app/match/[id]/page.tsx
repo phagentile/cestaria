@@ -16,6 +16,7 @@ import { ShootoutPanel } from "@/components/match/shootout-panel";
 import { ExportPanel } from "@/components/match/export-panel";
 import { ClockResolutionPopups } from "@/components/match/clock-resolution-popups";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useI18n } from "@/lib/i18n";
 
 export default function MatchControlPage() {
   const params = useParams();
@@ -24,6 +25,7 @@ export default function MatchControlPage() {
   const { user } = useAuthStore();
   const { loadAll } = useAdminStore();
   const { match, loadMatch, tickClock, checkMedicalClocks } = useMatchStore();
+  const { t } = useI18n();
   const lastTickRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
 
@@ -78,7 +80,7 @@ export default function MatchControlPage() {
   if (!user || !match) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <p className="text-[var(--muted-foreground)]">Carregando partida...</p>
+        <p className="text-[var(--muted-foreground)]">{t("ui.loading_match")}</p>
       </div>
     );
   }
@@ -107,10 +109,10 @@ export default function MatchControlPage() {
         <div className="flex-1 flex flex-col min-h-0">
           <Tabs defaultValue="timeline" className="flex-1 flex flex-col">
             <TabsList className="mx-4 mt-2 grid grid-cols-4">
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              <TabsTrigger value="roster">Elenco</TabsTrigger>
-              <TabsTrigger value="shootout">Penais</TabsTrigger>
-              <TabsTrigger value="export">Exportar</TabsTrigger>
+              <TabsTrigger value="timeline">{t("tab.timeline")}</TabsTrigger>
+              <TabsTrigger value="roster">{t("tab.roster")}</TabsTrigger>
+              <TabsTrigger value="shootout">{t("tab.shootout")}</TabsTrigger>
+              <TabsTrigger value="export">{t("tab.export")}</TabsTrigger>
             </TabsList>
             <TabsContent
               value="timeline"

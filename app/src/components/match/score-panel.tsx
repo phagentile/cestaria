@@ -2,10 +2,12 @@
 
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useI18n } from "@/lib/i18n";
 
 export function ScorePanel() {
   const { match, events, homeScore, awayScore, shootoutKicks } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
 
   if (!match) return null;
 
@@ -47,13 +49,13 @@ export function ScorePanel() {
               borderColor: home?.secondaryColor ?? "#999",
             }}
           >
-            {home?.acronym?.slice(0, 3) ?? "CAS"}
+            {home?.acronym?.slice(0, 3) ?? t("match.home_short").slice(0,3).toUpperCase()}
           </div>
           <div className="text-sm font-semibold truncate">
-            {home?.name ?? "Time da Casa"}
+            {home?.name ?? t("match.home")}
           </div>
           <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--rugby-home)] text-white">
-            Local
+            {t("score.home_badge")}
           </span>
         </div>
 
@@ -70,7 +72,7 @@ export function ScorePanel() {
           </div>
           {hasShootout && (
             <div className="text-xs text-[var(--rugby-gold)] mt-1 font-medium">
-              Penais: {homeShootout} - {awayShootout}
+              {t("score.shootout")}: {homeShootout} - {awayShootout}
             </div>
           )}
         </div>
@@ -84,13 +86,13 @@ export function ScorePanel() {
               borderColor: away?.secondaryColor ?? "#999",
             }}
           >
-            {away?.acronym?.slice(0, 3) ?? "VIS"}
+            {away?.acronym?.slice(0, 3) ?? t("match.away_short").slice(0,3).toUpperCase()}
           </div>
           <div className="text-sm font-semibold truncate">
-            {away?.name ?? "Time Visitante"}
+            {away?.name ?? t("match.away")}
           </div>
           <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--rugby-away)] text-white">
-            Visitante
+            {t("score.away_badge")}
           </span>
         </div>
       </div>

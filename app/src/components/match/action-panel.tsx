@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import type { EventType, CardType, SubstitutionType } from "@/types";
 import { LAW9_REASONS, SUBSTITUTION_LABELS, EVENT_LABELS } from "@/types";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 type ActionMode = "score" | "card" | "substitution" | null;
 
@@ -29,6 +30,7 @@ export function ActionPanel() {
   const { match, roster, addScore, addCard, addSubstitution } =
     useMatchStore();
   const { clubs } = useAdminStore();
+  const { t } = useI18n();
   const [mode, setMode] = useState<ActionMode>(null);
   const [busy, setBusy] = useState(false);
   const lastActionRef = useRef<number>(0);
@@ -259,10 +261,10 @@ export function ActionPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={match.homeClubId}>
-                    {homeClub?.name ?? "Casa"}
+                    {homeClub?.name ?? t("match.home_short")}
                   </SelectItem>
                   <SelectItem value={match.awayClubId}>
-                    {awayClub?.name ?? "Visitante"}
+                    {awayClub?.name ?? t("match.away_short")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -325,10 +327,10 @@ export function ActionPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={match.homeClubId}>
-                    {homeClub?.name ?? "Casa"}
+                    {homeClub?.name ?? t("match.home_short")}
                   </SelectItem>
                   <SelectItem value={match.awayClubId}>
-                    {awayClub?.name ?? "Visitante"}
+                    {awayClub?.name ?? t("match.away_short")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -418,10 +420,10 @@ export function ActionPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={match.homeClubId}>
-                    {homeClub?.name ?? "Casa"}
+                    {homeClub?.name ?? t("match.home_short")}
                   </SelectItem>
                   <SelectItem value={match.awayClubId}>
-                    {awayClub?.name ?? "Visitante"}
+                    {awayClub?.name ?? t("match.away_short")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -478,7 +480,7 @@ export function ActionPanel() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Tipo de substituicao" />
+                  <SelectValue placeholder={t("action.sub_type_placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {(
