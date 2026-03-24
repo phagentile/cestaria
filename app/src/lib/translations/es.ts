@@ -285,4 +285,10 @@ export const es: Record<string, string> = {
   "action.sub_type_placeholder": "Seleccione el tipo",
   // Loading
   "ui.loading_match": "Cargando partido...",
+  // Sync
+  "sync.syncing": "Sincronizando...",
+  "sync.synced": "Sincronizado",
+  "sync.offline": "Sin conexión — datos locales",
+  "sync.error": "Error de sincronización",
+  "sync.online": "En línea",
 };

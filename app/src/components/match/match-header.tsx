@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleToggle } from "@/components/locale-toggle";
+import { SyncIndicator } from "@/components/sync-indicator";
 import {
   ArrowLeft,
   Play,
@@ -180,6 +181,7 @@ export function MatchHeader() {
 
         {/* Right: Controls */}
         <div className="flex items-center gap-1">
+          <SyncIndicator />
           <LocaleToggle />
           <ThemeToggle />
 
