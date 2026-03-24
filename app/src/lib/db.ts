@@ -105,6 +105,37 @@ class CestariaDB extends Dexie {
         if (user.email) user.email = user.email.toLowerCase();
       });
     });
+
+    // version 4: ensure test user exists (may have been missed by seed if DB already had users)
+    this.version(4).stores({
+      users: 'id, email, role',
+      confederations: 'id, name',
+      federations: 'id, name, confederationId',
+      clubs: 'id, name, federationId',
+      referees: 'id, name, federationId',
+      categories: 'id, name',
+      gameTypes: 'id, name',
+      matches: 'id, status, matchDate, homeClubId, awayClubId',
+      matchRoster: 'id, matchId, clubId, role',
+      matchReferees: 'id, matchId, refereeId',
+      matchEvents: 'id, matchId, eventType, minute, deletedAt',
+      disciplinaryClocks: 'id, matchId, eventId, status',
+      medicalClocks: 'id, matchId, eventId, status',
+      penaltyShootout: 'id, matchId, round, clubId',
+      auditLog: 'id, entity, entityId, timestamp',
+      organizingEntities: 'id, name, level, parentId',
+    }).upgrade(async (tx) => {
+      const existing = await tx.table('users').where('email').equals('teste@teste.com').first();
+      if (!existing) {
+        await tx.table('users').add({
+          id: 'user-teste',
+          email: 'teste@teste.com',
+          password: 'teste123',
+          name: 'Usuário Teste',
+          role: 'gestor',
+        });
+      }
+    });
   }
 }
 
