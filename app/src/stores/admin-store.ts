@@ -11,6 +11,20 @@ import type {
   OrganizingEntity,
 } from '@/types';
 import { db } from '@/lib/db';
+import { enqueuePush, pushRow, getRemoteName, isOnline } from '@/lib/sync';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function syncWrite(localTable: string, row: any, mode: 'upsert' | 'delete' = 'upsert') {
+  const remote = getRemoteName(localTable);
+  if (!remote) return;
+  const online = await isOnline();
+  if (online) {
+    const ok = await pushRow(remote, row, mode);
+    if (!ok) enqueuePush(remote, row, mode);
+  } else {
+    enqueuePush(remote, row, mode);
+  }
+}
 
 interface AdminState {
   confederations: Confederation[];
@@ -90,6 +104,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.confederations.add(entry);
     set((s) => ({ confederations: [...s.confederations, entry] }));
+    syncWrite('confederations', entry);
     return id;
   },
   updateConfederation: async (id, data) => {
@@ -97,10 +112,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       confederations: s.confederations.map(c => c.id === id ? { ...c, ...data } : c),
     }));
+    const row = await db.confederations.get(id);
+    if (row) syncWrite('confederations', row);
   },
   deleteConfederation: async (id) => {
     await db.confederations.delete(id);
     set((s) => ({ confederations: s.confederations.filter(c => c.id !== id) }));
+    syncWrite('confederations', { id }, 'delete');
   },
 
   // Federations
@@ -109,6 +127,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.federations.add(entry);
     set((s) => ({ federations: [...s.federations, entry] }));
+    syncWrite('federations', entry);
     return id;
   },
   updateFederation: async (id, data) => {
@@ -116,10 +135,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       federations: s.federations.map(f => f.id === id ? { ...f, ...data } : f),
     }));
+    const row = await db.federations.get(id);
+    if (row) syncWrite('federations', row);
   },
   deleteFederation: async (id) => {
     await db.federations.delete(id);
     set((s) => ({ federations: s.federations.filter(f => f.id !== id) }));
+    syncWrite('federations', { id }, 'delete');
   },
 
   // Clubs
@@ -128,6 +150,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.clubs.add(entry);
     set((s) => ({ clubs: [...s.clubs, entry] }));
+    syncWrite('clubs', entry);
     return id;
   },
   updateClub: async (id, data) => {
@@ -135,10 +158,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       clubs: s.clubs.map(c => c.id === id ? { ...c, ...data } : c),
     }));
+    const row = await db.clubs.get(id);
+    if (row) syncWrite('clubs', row);
   },
   deleteClub: async (id) => {
     await db.clubs.delete(id);
     set((s) => ({ clubs: s.clubs.filter(c => c.id !== id) }));
+    syncWrite('clubs', { id }, 'delete');
   },
 
   // Referees
@@ -147,6 +173,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.referees.add(entry);
     set((s) => ({ referees: [...s.referees, entry] }));
+    syncWrite('referees', entry);
     return id;
   },
   updateReferee: async (id, data) => {
@@ -154,10 +181,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       referees: s.referees.map(r => r.id === id ? { ...r, ...data } : r),
     }));
+    const row = await db.referees.get(id);
+    if (row) syncWrite('referees', row);
   },
   deleteReferee: async (id) => {
     await db.referees.delete(id);
     set((s) => ({ referees: s.referees.filter(r => r.id !== id) }));
+    syncWrite('referees', { id }, 'delete');
   },
 
   // Categories
@@ -166,6 +196,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.categories.add(entry);
     set((s) => ({ categories: [...s.categories, entry] }));
+    syncWrite('categories', entry);
     return id;
   },
   updateCategory: async (id, data) => {
@@ -173,10 +204,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       categories: s.categories.map(c => c.id === id ? { ...c, ...data } : c),
     }));
+    const row = await db.categories.get(id);
+    if (row) syncWrite('categories', row);
   },
   deleteCategory: async (id) => {
     await db.categories.delete(id);
     set((s) => ({ categories: s.categories.filter(c => c.id !== id) }));
+    syncWrite('categories', { id }, 'delete');
   },
 
   // Users
@@ -185,11 +219,13 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.users.add(entry);
     set((s) => ({ users: [...s.users, entry] }));
+    syncWrite('users', entry);
     return id;
   },
   deleteUser: async (id) => {
     await db.users.delete(id);
     set((s) => ({ users: s.users.filter(u => u.id !== id) }));
+    syncWrite('users', { id }, 'delete');
   },
 
   // Organizing Entities
@@ -198,6 +234,7 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     const entry = { ...data, id };
     await db.organizingEntities.add(entry);
     set((s) => ({ organizingEntities: [...s.organizingEntities, entry] }));
+    syncWrite('organizingEntities', entry);
     return id;
   },
   updateOrganizingEntity: async (id, data) => {
@@ -205,9 +242,12 @@ export const useAdminStore = create<AdminState>()((set, get) => ({
     set((s) => ({
       organizingEntities: s.organizingEntities.map(e => e.id === id ? { ...e, ...data } : e),
     }));
+    const row = await db.organizingEntities.get(id);
+    if (row) syncWrite('organizingEntities', row);
   },
   deleteOrganizingEntity: async (id) => {
     await db.organizingEntities.delete(id);
     set((s) => ({ organizingEntities: s.organizingEntities.filter(e => e.id !== id) }));
+    syncWrite('organizingEntities', { id }, 'delete');
   },
 }));

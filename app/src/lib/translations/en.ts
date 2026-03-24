@@ -285,4 +285,10 @@ export const en: Record<string, string> = {
   "action.sub_type_placeholder": "Select type",
   // Loading
   "ui.loading_match": "Loading match...",
+  // Sync
+  "sync.syncing": "Syncing...",
+  "sync.synced": "Synced",
+  "sync.offline": "Offline — local data",
+  "sync.error": "Sync error",
+  "sync.online": "Online",
 };

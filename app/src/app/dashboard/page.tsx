@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleToggle } from "@/components/locale-toggle";
+import { SyncIndicator } from "@/components/sync-indicator";
 import { useI18n } from "@/lib/i18n";
 import {
   LogOut,
@@ -114,6 +115,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex gap-2 items-center">
+          <SyncIndicator />
           <LocaleToggle />
           <ThemeToggle />
           {hasPermission("manage_master_data") && (

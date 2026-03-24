@@ -20,6 +20,20 @@ import type {
 } from '@/types';
 import { EVENT_POINTS, MEDICAL_DURATIONS } from '@/types';
 import { db } from '@/lib/db';
+import { enqueuePush, pushRow, getRemoteName, isOnline } from '@/lib/sync';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function syncWrite(localTable: string, row: any, mode: 'upsert' | 'delete' = 'upsert') {
+  const remote = getRemoteName(localTable);
+  if (!remote) return;
+  const online = await isOnline();
+  if (online) {
+    const ok = await pushRow(remote, row, mode);
+    if (!ok) enqueuePush(remote, row, mode);
+  } else {
+    enqueuePush(remote, row, mode);
+  }
+}
 
 // Pendências de resolução quando um relógio expira
 export type ClockPendingType = 'disciplinary_expired' | 'medical_expired';
@@ -202,6 +216,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
       updatedAt: now,
     };
     await db.matches.add(match);
+    syncWrite('matches', match);
     return id;
   },
 
@@ -211,6 +226,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     const updatedMatch = { ...match, ...updates, updatedAt: new Date().toISOString() };
     await db.matches.put(updatedMatch);
     set({ match: updatedMatch });
+    syncWrite('matches', updatedMatch);
   },
 
   confirmMatch: async (userId: string) => {
@@ -358,6 +374,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
       const events = [...state.events, event];
       return { events };
     });
+    syncWrite('matchEvents', event);
     get().recalcScores();
     return id;
   },
@@ -369,6 +386,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
 
     const updated = { ...events[idx], ...updates, updatedAt: new Date().toISOString() };
     await db.matchEvents.put(updated);
+    syncWrite('matchEvents', updated);
 
     const newEvents = [...events];
     newEvents[idx] = updated;
@@ -440,6 +458,7 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     const full = { ...entry, id };
     await db.matchRoster.add(full);
     set((state) => ({ roster: [...state.roster, full] }));
+    syncWrite('matchRoster', full);
     return id;
   },
 
@@ -452,11 +471,13 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     const newRoster = [...roster];
     newRoster[idx] = updated;
     set({ roster: newRoster });
+    syncWrite('matchRoster', updated);
   },
 
   removeRosterEntry: async (id) => {
     await db.matchRoster.delete(id);
     set((state) => ({ roster: state.roster.filter(r => r.id !== id) }));
+    syncWrite('matchRoster', { id }, 'delete');
   },
 
   // Referees
@@ -465,12 +486,14 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
     const full = { ...entry, id };
     await db.matchReferees.add(full);
     set((state) => ({ referees: [...state.referees, full] }));
+    syncWrite('matchReferees', full);
     return id;
   },
 
   removeReferee: async (id) => {
     await db.matchReferees.delete(id);
     set((state) => ({ referees: state.referees.filter(r => r.id !== id) }));
+    syncWrite('matchReferees', { id }, 'delete');
   },
 
   // Scoring
