@@ -1,0 +1,57 @@
+## Codebase Patterns
+- Documentação de planejamento vai em arquivos markdown na raiz do projeto
+- PRD em formato JSON na raiz do projeto (prd.json)
+- Branch de trabalho definida no PRD via campo branchName
+- Docs técnicos ficam em /docs/ (business-rules.md, architecture.md)
+- Sistema suporta XV e Sevens — NUNCA hardcodar parâmetros de tipo de jogo
+- Dois perfis: Gestor (admin) e Quarto Árbitro (operador)
+- Offline-first: toda lógica no browser, servidor é backup
+- Placar SEMPRE derivado da soma de eventos, nunca armazenado
+- Cronômetros disciplinares pausam com jogo, médicos NÃO
+- JWT com refresh token longo para auth offline
+- UUIDs gerados no client para operação offline
+- Cadastros mestres são readonly offline, apenas dados de partida são "offline wins"
+- App fica em /app (Next.js project). Rodar `cd app && pnpm dev` para iniciar.
+- shadcn/ui usa base-ui (não Radix). Select.onValueChange recebe `string | null`, precisa `v ?? ""`
+- Não usar `asChild` — não existe no base-ui. Usar state controlado para dialogs.
+- Google Fonts não disponível em build offline — usar font-sans do sistema
+---
+
+## 2026-03-15 - PLAN-001
+- Criado documento completo de planejamento de equipe (team-planning.md)
+- Definida equipe multidisciplinar de 11 papéis com acúmulo para 4+1 no MVP
+- Documentadas 7 fases do projeto com entregáveis e critérios de aceite
+- Estrutura modular do app definida (9 módulos + shared)
+- Stack recomendada: Next.js + TypeScript + Zustand + PostgreSQL + Drizzle
+- 7 categorias de riscos identificadas e mitigadas
+- **Learnings for future iterations:**
+  - O maior desafio técnico é a dualidade de cronômetros: tempo de jogo (pausável) vs tempo real (contínuo)
+  - Placar NUNCA deve ser campo armazenado — sempre derivado da soma de eventos
+  - Regras do rugby mudam entre temporadas; configuração por competição é obrigatória
+  - Operação ao vivo exige UX com zero fricção para ações aditivas, confirmação apenas para destrutivas
+  - Offline-first é requisito real — estádios de rugby têm internet instável
+---
+
+## 2026-03-15 - PLAN-002
+- PRD refinado com todas as respostas do stakeholder (prd.json v2.0)
+- team-planning.md atualizado para v2 com:
+  - MVP escopo: tudo exceto importação PDF e integrações
+  - Rugby XV + Sevens com parametrização
+  - Perfis Gestor + Quarto Árbitro com permissões detalhadas
+  - Operação offline longa (partida inteira)
+  - Lógica de encerramento/reabertura com auditoria
+  - Cadastros mestres (confederação, federação, clubes, árbitros, categorias, tipo de jogo)
+  - Critérios de exportação (80 min + hora início + hora fim)
+  - SLA: 120ms latência, 120s sync
+  - 14 módulos (era 9), timeline 17-22 semanas (era 14-17)
+- docs/business-rules.md criado: regras completas de XV e Sevens
+- docs/architecture.md criado: arquitetura local-first, modelo SQL, sync, timers
+- Files changed: prd.json, team-planning.md, progress.txt, docs/business-rules.md, docs/architecture.md
+- **Learnings for future iterations:**
+  - Sevens muda MUITOS parâmetros (cartão amarelo 2min vs 10min, 7 jogadores vs 15, conversão por drop kick)
+  - Encerramento de partida bloqueia Quarto Árbitro mas permite reabertura com log
+  - Exportação tem pré-requisitos (80 min + horários) mas permite override (jogo abandonado)
+  - Sync usa "offline wins" para dados de partida mas "server wins" para cadastros mestres
+  - JWT long-lived é necessário porque operador pode ficar 80+ min offline
+  - Geração de PDF DEVE funcionar no browser (offline-first)
+---
