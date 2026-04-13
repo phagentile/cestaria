@@ -234,7 +234,22 @@ export function RosterPanel() {
             {role === "staff" && (
               <div className="space-y-1">
                 <Label>{t("roster.staff_role")}</Label>
-                <Input value={staffRole} onChange={(e) => setStaffRole(e.target.value)} />
+                <Select value={staffRole} onValueChange={(v) => setStaffRole(v ?? "")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("roster.staff_role")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "Head Coach","Coach","Asst. Coach",
+                      "Team Manager","Asst. Team Manager",
+                      "PF","Physio","Médico","Nutricionista",
+                      "Analista de Video","Media Manager",
+                      "Manager","Logística","Comunicación",
+                    ].map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <Button className="w-full" onClick={handleAdd} disabled={!clubId || !playerName || !shirtNumber}>
