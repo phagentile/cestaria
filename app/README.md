@@ -133,32 +133,43 @@ Browser / PWA
 
 ## Perfis de Usuário
 
-Baseados nas especificações do **World Rugby Switch Training**.
+Baseados nas especificações do **World Rugby Switch Training**. Há 7 perfis distintos por jogo.
 
-| Perfil | Código | Descrição |
-|---|---|---|
-| Gestor | `gestor` | Administrador completo do sistema |
-| Árbitro Lateral | `sideline_official` | Aprova substituições, cartões, placar |
-| Gerente de Equipe | `team_manager` | Solicita substituições, acompanha partida |
-| Gestor Zona Técnica | `technical_zone_manager` | Somente leitura — supervisão da zona técnica |
-| 4º Árbitro | `quarto_arbitro` | Opera partida, aprova substituições, cartões |
+| Perfil | Código | Email de Teste | Senha |
+|---|---|---|---|
+| Gestor | `gestor` | `gestor@rugbymatch.app` | `Gestor@123` |
+| 4º Árbitro | `quarto_arbitro` | `4arbitro@rugbymatch.app` | `4Arb@123` |
+| Sideline Official Time A | `sideline_official_a` | `sideline.a@rugbymatch.app` | `SideA@123` |
+| Sideline Official Time B | `sideline_official_b` | `sideline.b@rugbymatch.app` | `SideB@123` |
+| Team Manager Time A | `team_manager_a` | `manager.a@rugbymatch.app` | `MgrA@123` |
+| Team Manager Time B | `team_manager_b` | `manager.b@rugbymatch.app` | `MgrB@123` |
+| Technical Zone Manager | `technical_zone_manager` | `zona@rugbymatch.app` | `Zona@123` |
 
 ### Permissões por perfil
 
-| Permissão | Gestor | Sideline Official | Team Manager | Zona Técnica | 4º Árbitro |
+| Permissão | Gestor | 4º Árbitro | Sideline A/B | Team Mgr A/B | Zona Técnica |
 |---|---|---|---|---|---|
 | Dados cadastrais | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Criar partida | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Operar partida | ✅ | ✅ | ❌ | ❌ | ✅ |
-| **Aprovar substituições** | ✅ | ✅ | ❌ | ❌ | ✅ |
-| **Solicitar substituições** | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Gerenciar cartões | ✅ | ✅ | ❌ | ❌ | ✅ |
+| **Controle do relógio mestre** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Operar partida | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Aprovar substituições** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Solicitar substituições** | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Gerenciar cartões | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Editar placar | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Reabrir partida | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Reabrir partida | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Ver timeline | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ver auditoria | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Ver auditoria | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Exportar relatório | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+### Regras operacionais
+
+- **Relógio mestre**: controlado apenas pelo 4º Árbitro e Gestor. Quando parado/iniciado, todos os perfis veem o mesmo estado
+- **Cartão amarelo**: jogador bloqueado para substituição enquanto o cronômetro estiver ativo — visível em todos os perfis
+- **Substituições**: Team Manager A/B *solicita* → 4º Árbitro ou Sideline Official *aprova*
+- **Sideline A** acompanha o Time A, **Sideline B** acompanha o Time B
+- Todos os perfis só acessam jogos com status `live`
 
 ---
 
