@@ -20,7 +20,9 @@ const PERMISSIONS: Record<UserRole, Set<string>> = {
     'manage_master_data',
     'create_match',
     'operate_match',
+    'control_clock',       // start/stop relógio mestre
     'approve_replacements',
+    'request_replacements',
     'manage_cards',
     'edit_score',
     'reopen_match',
@@ -29,38 +31,53 @@ const PERMISSIONS: Record<UserRole, Set<string>> = {
     'export',
   ]),
 
-  // Sideline Official (Árbitro de Linha Lateral / Oficial de 6)
-  // World Rugby Switch: aprova substituições, registra cartões, vê timeline
-  sideline_official: new Set([
+  // 4º Árbitro — relógio mestre, cartões, aprovação de subs
+  quarto_arbitro: new Set([
     'operate_match',
+    'control_clock',       // start/stop relógio mestre
     'approve_replacements',
     'manage_cards',
     'edit_score',
+    'reopen_match',
     'view_audit',
     'export',
   ]),
 
-  // Team Manager (Gerente de Equipe A ou B)
-  // World Rugby Switch: solicita substituições, acompanha status, exporta
-  team_manager: new Set([
+  // Sideline Official Time A — aprova subs, cartões, vê Time A
+  sideline_official_a: new Set([
+    'operate_match',
+    'approve_replacements',
+    'manage_cards',
+    'view_audit',
+    'export',
+  ]),
+
+  // Sideline Official Time B — idêntico ao A mas vinculado ao Time B
+  sideline_official_b: new Set([
+    'operate_match',
+    'approve_replacements',
+    'manage_cards',
+    'view_audit',
+    'export',
+  ]),
+
+  // Team Manager Time A — solicita substituições do Time A
+  team_manager_a: new Set([
     'request_replacements',
     'view_timeline',
     'export',
   ]),
 
-  // Technical Zone Manager (Gestor da Zona Técnica)
-  // Supervisiona a zona técnica, acesso somente leitura operacional
-  technical_zone_manager: new Set([
+  // Team Manager Time B — solicita substituições do Time B
+  team_manager_b: new Set([
+    'request_replacements',
     'view_timeline',
     'export',
   ]),
 
-  // 4º Árbitro — opera partida e pode reabrir, não aprova substituições diretamente
-  quarto_arbitro: new Set([
-    'operate_match',
-    'approve_replacements',
-    'manage_cards',
-    'reopen_match',
+  // Technical Zone Manager — somente leitura operacional
+  technical_zone_manager: new Set([
+    'view_timeline',
     'export',
   ]),
 };

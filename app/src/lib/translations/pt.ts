@@ -152,10 +152,12 @@ export const pt: Record<string, string> = {
   "ui.copy": "Copiar",
   // User roles
   "role.gestor": "Gestor",
-  "role.sideline_official": "Árbitro Lateral (Sideline Official)",
-  "role.team_manager": "Gerente de Equipe (Team Manager)",
-  "role.technical_zone_manager": "Gestor da Zona Técnica",
   "role.quarto_arbitro": "4º Árbitro",
+  "role.sideline_official_a": "Sideline Official — Time A",
+  "role.sideline_official_b": "Sideline Official — Time B",
+  "role.team_manager_a": "Team Manager — Time A",
+  "role.team_manager_b": "Team Manager — Time B",
+  "role.technical_zone_manager": "Technical Zone Manager",
   "role.viewer": "Visualizador",
   // Clock resolution popups
   "popup.disciplinary.yellow_title": "Cartão Amarelo — Tempo Esgotado",

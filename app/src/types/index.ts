@@ -166,10 +166,12 @@ export type ShootoutResult = 'made' | 'missed' | 'pending';
 // --- User Roles ---
 export type UserRole =
   | 'gestor'
-  | 'sideline_official'
-  | 'team_manager'
-  | 'technical_zone_manager'
-  | 'quarto_arbitro';
+  | 'quarto_arbitro'
+  | 'sideline_official_a'
+  | 'sideline_official_b'
+  | 'team_manager_a'
+  | 'team_manager_b'
+  | 'technical_zone_manager';
 
 // --- Entities ---
 

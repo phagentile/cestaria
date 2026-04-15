@@ -106,7 +106,7 @@ class CestariaDB extends Dexie {
       });
     });
 
-    // version 4: ensure test user exists (may have been missed by seed if DB already had users)
+    // version 4-orig: ensure test user exists
     this.version(4).stores({
       users: 'id, email, role',
       confederations: 'id, name',
@@ -134,6 +134,40 @@ class CestariaDB extends Dexie {
           name: 'Usuário Teste',
           role: 'gestor',
         });
+      }
+    });
+
+    // version 5: seed all 7 match-day role users
+    this.version(5).stores({
+      users: 'id, email, role',
+      confederations: 'id, name',
+      federations: 'id, name, confederationId',
+      clubs: 'id, name, federationId',
+      referees: 'id, name, federationId',
+      categories: 'id, name',
+      gameTypes: 'id, name',
+      matches: 'id, status, matchDate, homeClubId, awayClubId',
+      matchRoster: 'id, matchId, clubId, role',
+      matchReferees: 'id, matchId, refereeId',
+      matchEvents: 'id, matchId, eventType, minute, deletedAt',
+      disciplinaryClocks: 'id, matchId, eventId, status',
+      medicalClocks: 'id, matchId, eventId, status',
+      penaltyShootout: 'id, matchId, round, clubId',
+      auditLog: 'id, entity, entityId, timestamp',
+      organizingEntities: 'id, name, level, parentId',
+    }).upgrade(async (tx) => {
+      const matchDayUsers = [
+        { id: 'user-gestor',    email: 'gestor@rugbymatch.app',    password: 'Gestor@123',    name: 'Gestor',                     role: 'gestor' },
+        { id: 'user-4arb',      email: '4arbitro@rugbymatch.app',  password: '4Arb@123',      name: '4º Árbitro',                 role: 'quarto_arbitro' },
+        { id: 'user-slo-a',     email: 'sideline.a@rugbymatch.app',password: 'SideA@123',     name: 'Sideline Official Time A',   role: 'sideline_official_a' },
+        { id: 'user-slo-b',     email: 'sideline.b@rugbymatch.app',password: 'SideB@123',     name: 'Sideline Official Time B',   role: 'sideline_official_b' },
+        { id: 'user-tm-a',      email: 'manager.a@rugbymatch.app', password: 'MgrA@123',      name: 'Team Manager Time A',        role: 'team_manager_a' },
+        { id: 'user-tm-b',      email: 'manager.b@rugbymatch.app', password: 'MgrB@123',      name: 'Team Manager Time B',        role: 'team_manager_b' },
+        { id: 'user-tzm',       email: 'zona@rugbymatch.app',      password: 'Zona@123',      name: 'Technical Zone Manager',     role: 'technical_zone_manager' },
+      ];
+      for (const u of matchDayUsers) {
+        const exists = await tx.table('users').where('email').equals(u.email).first();
+        if (!exists) await tx.table('users').add(u);
       }
     });
   }
