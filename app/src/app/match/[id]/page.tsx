@@ -21,7 +21,7 @@ export default function MatchControlPage() {
   const params = useParams();
   const router = useRouter();
   const matchId = params.id as string;
-  const { user } = useAuthStore();
+  const { user, resolveMatchRole, clearMatchRole } = useAuthStore();
   const { loadAll } = useAdminStore();
   const { match, loadMatch, tickClock, checkMedicalClocks } = useMatchStore();
   const { t } = useI18n();
@@ -36,8 +36,13 @@ export default function MatchControlPage() {
     if (matchId && matchId !== "new") {
       loadAll();
       loadMatch(matchId);
+      resolveMatchRole(matchId);
     }
-  }, [user, matchId, router, loadAll, loadMatch]);
+    return () => {
+      clearMatchRole();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, matchId, router]);
 
   // Game clock loop
   const loop = useCallback(

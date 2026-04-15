@@ -173,6 +173,26 @@ export type UserRole =
   | 'team_manager_b'
   | 'technical_zone_manager';
 
+// Papéis que um usuário pode ter em um jogo específico (dinâmico, por partida)
+export type MatchZoneRole =
+  | 'quarto_arbitro'
+  | 'sideline_official_a'
+  | 'sideline_official_b'
+  | 'sideline_official_both'       // 1 Appointed: controla os dois lados
+  | 'team_manager_a'
+  | 'team_manager_b'
+  | 'technical_zone_controller_a'  // TZC vinculado ao Time A
+  | 'technical_zone_controller_b'  // TZC vinculado ao Time B
+  | 'technical_zone_manager';      // TZM genérico (somente leitura)
+
+export interface MatchZoneOfficial {
+  id: string;
+  matchId: string;
+  userId: string;
+  role: MatchZoneRole;
+  createdAt: string;
+}
+
 // --- Entities ---
 
 export interface User {

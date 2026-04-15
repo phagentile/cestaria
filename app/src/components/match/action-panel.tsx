@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +31,7 @@ export function ActionPanel() {
   const { match, roster, addScore, addCard, addSubstitution } =
     useMatchStore();
   const { clubs } = useAdminStore();
+  const { hasPermission, getManagedClubId } = useAuthStore();
   const { t } = useI18n();
   const [mode, setMode] = useState<ActionMode>(null);
   const [busy, setBusy] = useState(false);
@@ -54,6 +56,18 @@ export function ActionPanel() {
   const [subType, setSubType] = useState<SubstitutionType | "">("");
 
   if (!match) return null;
+
+  const canEditScore = hasPermission("edit_score");
+  const canManageCards = hasPermission("manage_cards");
+  const canApproveReplacements = hasPermission("approve_replacements");
+  const canRequestReplacements = hasPermission("request_replacements");
+  const canDoSubstitution = canApproveReplacements || canRequestReplacements;
+
+  // Team managers são restritos ao seu próprio time (resolvido dinamicamente pelo papel no jogo)
+  const teamManagerClubId = getManagedClubId(match.homeClubId, match.awayClubId);
+
+  // If no relevant permission, render nothing
+  if (!canEditScore && !canManageCards && !canDoSubstitution) return null;
 
   const homeClub = clubs.find((c) => c.id === match.homeClubId);
   const awayClub = clubs.find((c) => c.id === match.awayClubId);
@@ -176,69 +190,80 @@ export function ActionPanel() {
 
   return (
     <div className="p-3 border-b border-[var(--border)] space-y-3 animate-fade-in-up">
-      {/* Score Buttons */}
-      <div>
-        <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5 uppercase tracking-wide">
-          Pontuacao
+      {/* Score Buttons — only for roles with edit_score */}
+      {canEditScore && (
+        <div>
+          <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5 uppercase tracking-wide">
+            Pontuacao
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {scoreButtons.map((btn) => (
+              <Button
+                key={btn.type}
+                size="sm"
+                className={`${btn.color} text-white text-xs h-9 font-semibold transition-all duration-200 active:scale-95`}
+                onClick={() => handleScore(btn.type)}
+                disabled={busy}
+              >
+                {btn.label}
+              </Button>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {scoreButtons.map((btn) => (
-            <Button
-              key={btn.type}
-              size="sm"
-              className={`${btn.color} text-white text-xs h-9 font-semibold transition-all duration-200 active:scale-95`}
-              onClick={() => handleScore(btn.type)}
-              disabled={busy}
-            >
-              {btn.label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Card + Sub Buttons */}
       <div className="flex gap-2">
-        <Button
-          size="sm"
-          className="flex-1 h-9 bg-[var(--rugby-yellow-card)] text-black font-semibold hover:bg-[var(--rugby-yellow-card)]/80 transition-all duration-200 active:scale-95"
-          onClick={() => {
-            setCardType("yellow");
-            setMode("card");
-          }}
-          disabled={busy}
-        >
-          Amarelo
-        </Button>
-        <Button
-          size="sm"
-          className="flex-1 h-9 bg-[var(--rugby-red-card)] text-white font-semibold hover:bg-[var(--rugby-red-card)]/80 transition-all duration-200 active:scale-95"
-          onClick={() => {
-            setCardType("red");
-            setMode("card");
-          }}
-          disabled={busy}
-        >
-          Vermelho
-        </Button>
-        <Button
-          size="sm"
-          className="flex-1 h-9 bg-[var(--rugby-red-card)]/60 text-white font-semibold hover:bg-[var(--rugby-red-card)]/50 transition-all duration-200 active:scale-95"
-          onClick={() => {
-            setCardType("temp_red");
-            setMode("card");
-          }}
-          disabled={busy}
-        >
-          V. Temp.
-        </Button>
-        <Button
-          size="sm"
-          className="flex-1 h-9 bg-[var(--rugby-substitution)] text-white font-semibold hover:bg-[var(--rugby-substitution)]/80 transition-all duration-200 active:scale-95"
-          onClick={() => setMode("substitution")}
-          disabled={busy}
-        >
-          Subst.
-        </Button>
+        {canManageCards && (
+          <>
+            <Button
+              size="sm"
+              className="flex-1 h-9 bg-[var(--rugby-yellow-card)] text-black font-semibold hover:bg-[var(--rugby-yellow-card)]/80 transition-all duration-200 active:scale-95"
+              onClick={() => {
+                setCardType("yellow");
+                setMode("card");
+              }}
+              disabled={busy}
+            >
+              Amarelo
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-9 bg-[var(--rugby-red-card)] text-white font-semibold hover:bg-[var(--rugby-red-card)]/80 transition-all duration-200 active:scale-95"
+              onClick={() => {
+                setCardType("red");
+                setMode("card");
+              }}
+              disabled={busy}
+            >
+              Vermelho
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-9 bg-[var(--rugby-red-card)]/60 text-white font-semibold hover:bg-[var(--rugby-red-card)]/50 transition-all duration-200 active:scale-95"
+              onClick={() => {
+                setCardType("temp_red");
+                setMode("card");
+              }}
+              disabled={busy}
+            >
+              V. Temp.
+            </Button>
+          </>
+        )}
+        {canDoSubstitution && (
+          <Button
+            size="sm"
+            className="flex-1 h-9 bg-[var(--rugby-substitution)] text-white font-semibold hover:bg-[var(--rugby-substitution)]/80 transition-all duration-200 active:scale-95"
+            onClick={() => {
+              if (teamManagerClubId) setSubClubId(teamManagerClubId);
+              setMode("substitution");
+            }}
+            disabled={busy}
+          >
+            {canApproveReplacements ? "Subst." : "Solicitar Subst."}
+          </Button>
+        )}
       </div>
 
       {/* Score Dialog */}
@@ -406,27 +431,38 @@ export function ActionPanel() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registrar Substituicao</DialogTitle>
+            <DialogTitle>
+              {canApproveReplacements ? "Registrar Substituicao" : "Solicitar Substituicao"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Time *</Label>
-              <Select
-                value={subClubId}
-                onValueChange={(v) => setSubClubId(v ?? "")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o time" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={match.homeClubId}>
-                    {homeClub?.name ?? t("match.home_short")}
-                  </SelectItem>
-                  <SelectItem value={match.awayClubId}>
-                    {awayClub?.name ?? t("match.away_short")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              {teamManagerClubId ? (
+                /* Team managers see only their own team — no select needed */
+                <div className="px-3 py-2 rounded-md border border-[var(--border)] text-sm bg-[var(--muted)]/30">
+                  {teamManagerClubId === match.homeClubId
+                    ? (homeClub?.name ?? t("match.home_short"))
+                    : (awayClub?.name ?? t("match.away_short"))}
+                </div>
+              ) : (
+                <Select
+                  value={subClubId}
+                  onValueChange={(v) => setSubClubId(v ?? "")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={match.homeClubId}>
+                      {homeClub?.name ?? t("match.home_short")}
+                    </SelectItem>
+                    <SelectItem value={match.awayClubId}>
+                      {awayClub?.name ?? t("match.away_short")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {subClubId && (

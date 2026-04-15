@@ -39,8 +39,9 @@ const MATCH_TABLES = [
   { local: 'matchEvents',       remote: 'match_events' },
   { local: 'disciplinaryClocks',remote: 'disciplinary_clocks' },
   { local: 'medicalClocks',     remote: 'medical_clocks' },
-  { local: 'penaltyShootout',   remote: 'penalty_shootout' },
-  { local: 'auditLog',          remote: 'audit_log' },
+  { local: 'penaltyShootout',      remote: 'penalty_shootout' },
+  { local: 'auditLog',             remote: 'audit_log' },
+  { local: 'matchZoneOfficials',   remote: 'match_zone_officials' },
 ] as const;
 
 export type SyncStatus = 'idle' | 'syncing' | 'online' | 'offline' | 'error';
