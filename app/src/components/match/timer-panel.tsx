@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { useI18n } from "@/lib/i18n";
 import { formatTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,9 @@ export function TimerPanel() {
     editMedicalClock,
   } = useMatchStore();
   const { clubs } = useAdminStore();
+  const { hasPermission } = useAuthStore();
   const { t } = useI18n();
+  const canEditClocks = hasPermission("control_clock");
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [editMinutes, setEditMinutes] = useState("");
   const [editSeconds, setEditSeconds] = useState("");
@@ -124,15 +127,17 @@ export function TimerPanel() {
                     <span className="text-xs font-mono font-bold w-12 text-right tabular-nums text-[var(--foreground)] shrink-0">
                       {formatTime(remaining)}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                      title={t("clock.adjust_time")}
-                      onClick={() => openEdit({ kind: "disciplinary", clock })}
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </Button>
+                    {canEditClocks && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                        title={t("clock.adjust_time")}
+                        onClick={() => openEdit({ kind: "disciplinary", clock })}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -182,15 +187,17 @@ export function TimerPanel() {
                     <span className="text-xs font-mono font-bold w-12 text-right tabular-nums text-[var(--foreground)] shrink-0">
                       {formatTime(remaining)}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                      title={t("clock.adjust_time")}
-                      onClick={() => openEdit({ kind: "medical", clock })}
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </Button>
+                    {canEditClocks && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                        title={t("clock.adjust_time")}
+                        onClick={() => openEdit({ kind: "medical", clock })}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}

@@ -73,7 +73,8 @@ export default function NewMatchPage() {
       matchDate: matchDate || undefined,
       scheduledStartTime: scheduledStartTime || undefined,
     });
-    router.push(`/match/${id}`);
+    // Redireciona para edição para que o gestor designe os oficiais antes de iniciar
+    router.push(`/match/${id}/edit`);
   };
 
   if (!user) return null;

@@ -52,7 +52,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export function MatchHeader() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
   const {
     match,
     startClock,
@@ -158,7 +158,7 @@ export function MatchHeader() {
             <div className="font-mono text-2xl font-bold tabular-nums">
               {formatTime(match.clockSeconds)}
             </div>
-            {!match.clockRunning && !isLocked && (
+            {hasPermission("control_clock") && !match.clockRunning && !isLocked && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -185,8 +185,8 @@ export function MatchHeader() {
           <LocaleToggle />
           <ThemeToggle />
 
-          {/* Confirm button for scheduled matches */}
-          {match.status === "scheduled" && (
+          {/* Confirm button for scheduled matches — only gestor/quarto_arbitro */}
+          {match.status === "scheduled" && hasPermission("control_clock") && (
             <Button
               variant="ghost"
               size="sm"
@@ -198,7 +198,8 @@ export function MatchHeader() {
             </Button>
           )}
 
-          {!isLocked && (
+          {/* Clock controls — only roles with control_clock permission */}
+          {hasPermission("control_clock") && !isLocked && (
             <>
               {match.clockRunning ? (
                 <Button
@@ -261,7 +262,8 @@ export function MatchHeader() {
             </>
           )}
 
-          {isLocked && (
+          {/* Reopen — only roles that can reopen match */}
+          {isLocked && hasPermission("reopen_match") && (
             <Button
               variant="ghost"
               size="sm"

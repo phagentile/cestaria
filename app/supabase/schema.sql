@@ -202,3 +202,26 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- Enable Row Level Security (optional — requires auth setup)
 -- ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "public_access" ON matches FOR ALL USING (true);
+
+
+CREATE TABLE IF NOT EXISTS match_zone_officials (
+  id           TEXT PRIMARY KEY,
+  match_id     TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role         TEXT NOT NULL CHECK (role IN (
+                 'quarto_arbitro',
+                 'sideline_official_a',
+                 'sideline_official_b',
+                 'sideline_official_both',
+                 'team_manager_a',
+                 'team_manager_b',
+                 'technical_zone_controller_a',
+                 'technical_zone_controller_b',
+                 'technical_zone_manager'
+               )),
+  created_at   TEXT NOT NULL,
+  UNIQUE (match_id, role)
+);
+
+ALTER TABLE match_zone_officials ENABLE ROW LEVEL SECURITY;
+CREATE POLICY allow_all ON match_zone_officials FOR ALL USING (true) WITH CHECK (true);

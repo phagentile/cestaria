@@ -4,6 +4,7 @@ import type {
   MatchEvent,
   MatchRosterEntry,
   MatchRefereeEntry,
+  MatchZoneOfficial,
   DisciplinaryClock,
   MedicalClock,
   PenaltyShootoutKick,
@@ -36,6 +37,7 @@ class CestariaDB extends Dexie {
   penaltyShootout!: EntityTable<PenaltyShootoutKick, 'id'>;
   auditLog!: EntityTable<AuditLogEntry, 'id'>;
   organizingEntities!: EntityTable<OrganizingEntity, 'id'>;
+  matchZoneOfficials!: EntityTable<MatchZoneOfficial, 'id'>;
 
   constructor() {
     super('cestaria');
@@ -169,6 +171,27 @@ class CestariaDB extends Dexie {
         const exists = await tx.table('users').where('email').equals(u.email).first();
         if (!exists) await tx.table('users').add(u);
       }
+    });
+
+    // version 6: add matchZoneOfficials table
+    this.version(6).stores({
+      users: 'id, email, role',
+      confederations: 'id, name',
+      federations: 'id, name, confederationId',
+      clubs: 'id, name, federationId',
+      referees: 'id, name, federationId',
+      categories: 'id, name',
+      gameTypes: 'id, name',
+      matches: 'id, status, matchDate, homeClubId, awayClubId',
+      matchRoster: 'id, matchId, clubId, role',
+      matchReferees: 'id, matchId, refereeId',
+      matchEvents: 'id, matchId, eventType, minute, deletedAt',
+      disciplinaryClocks: 'id, matchId, eventId, status',
+      medicalClocks: 'id, matchId, eventId, status',
+      penaltyShootout: 'id, matchId, round, clubId',
+      auditLog: 'id, entity, entityId, timestamp',
+      organizingEntities: 'id, name, level, parentId',
+      matchZoneOfficials: 'id, matchId, userId, role',
     });
   }
 }
