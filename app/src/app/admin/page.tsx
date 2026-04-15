@@ -220,6 +220,9 @@ export default function AdminPage() {
                   type: "select",
                   options: [
                     { value: "gestor", label: t("role.gestor") },
+                    { value: "sideline_official", label: t("role.sideline_official") },
+                    { value: "team_manager", label: t("role.team_manager") },
+                    { value: "technical_zone_manager", label: t("role.technical_zone_manager") },
                     { value: "quarto_arbitro", label: t("role.quarto_arbitro") },
                   ],
                   required: true,

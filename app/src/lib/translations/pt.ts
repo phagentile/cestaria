@@ -152,6 +152,9 @@ export const pt: Record<string, string> = {
   "ui.copy": "Copiar",
   // User roles
   "role.gestor": "Gestor",
+  "role.sideline_official": "Árbitro Lateral (Sideline Official)",
+  "role.team_manager": "Gerente de Equipe (Team Manager)",
+  "role.technical_zone_manager": "Gestor da Zona Técnica",
   "role.quarto_arbitro": "4º Árbitro",
   "role.viewer": "Visualizador",
   // Clock resolution popups
