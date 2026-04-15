@@ -133,7 +133,9 @@ Browser / PWA
 
 ## Perfis de Usuário
 
-Baseados nas especificações do **World Rugby Switch Training**. Há 7 perfis distintos por jogo.
+Baseados nas especificações do **World Rugby Switch Training**.
+
+### Perfis de sistema (login)
 
 | Perfil | Código | Email de Teste | Senha |
 |---|---|---|---|
@@ -145,16 +147,42 @@ Baseados nas especificações do **World Rugby Switch Training**. Há 7 perfis d
 | Team Manager Time B | `team_manager_b` | `manager.b@rugbymatch.app` | `MgrB@123` |
 | Technical Zone Manager | `technical_zone_manager` | `zona@rugbymatch.app` | `Zona@123` |
 
-### Permissões por perfil
+### Papéis dinâmicos por jogo (`match_zone_officials`)
 
-| Permissão | Gestor | 4º Árbitro | Sideline A/B | Team Mgr A/B | Zona Técnica |
+O Gestor designa cada usuário a um papel específico **por partida**. O papel do jogo sobrepõe o perfil global e determina as permissões em tempo real.
+
+| Papel no jogo | Código | Descrição |
+|---|---|---|
+| 4º Árbitro | `quarto_arbitro` | Relógio, placar, cartões, aprovação de subs |
+| Sideline Manager — Ambos | `sideline_official_both` | 1 Appointed: controla os dois lados |
+| Sideline Manager — Time A | `sideline_official_a` | Linha e subs do Time A |
+| Sideline Manager — Time B | `sideline_official_b` | Linha e subs do Time B |
+| TZ Controller — Time A | `technical_zone_controller_a` | Supervisão zona técnica Time A |
+| TZ Controller — Time B | `technical_zone_controller_b` | Supervisão zona técnica Time B |
+| Team Manager — Time A | `team_manager_a` | Solicita subs do Time A |
+| Team Manager — Time B | `team_manager_b` | Solicita subs do Time B |
+
+### Configurações World Rugby (número de pessoas)
+
+| Config | Pessoas | Papéis utilizados |
+|---|---|---|
+| **1 Appointed** | 1 | Sideline Manager (ambos os lados) |
+| **2 Appointed** | 2 | Sideline Manager + TZ Controller |
+| **3 Appointed (Recomendado)** | 3 | 2× TZ Controller + Sideline Manager |
+| **3 Appointed (Alternativo)** | 3 | TZ Controller + Sideline Manager |
+| **4 Appointed** | 4 | 2× TZ Controller + Sideline Manager + 4º Árbitro |
+| **Completo** | 7 | Todos os papéis |
+
+### Permissões por papel
+
+| Permissão | Gestor | 4º Árbitro | Sideline Mgr | TZ Controller | Team Mgr |
 |---|---|---|---|---|---|
 | Dados cadastrais | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Criar partida | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Controle do relógio mestre** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Operar partida | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **Aprovar substituições** | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Solicitar substituições** | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Solicitar substituições** | ✅ | ❌ | ❌ | ❌ | ✅ |
 | Gerenciar cartões | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Editar placar | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Reabrir partida | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -165,11 +193,11 @@ Baseados nas especificações do **World Rugby Switch Training**. Há 7 perfis d
 
 ### Regras operacionais
 
-- **Relógio mestre**: controlado apenas pelo 4º Árbitro e Gestor. Quando parado/iniciado, todos os perfis veem o mesmo estado
-- **Cartão amarelo**: jogador bloqueado para substituição enquanto o cronômetro estiver ativo — visível em todos os perfis
-- **Substituições**: Team Manager A/B *solicita* → 4º Árbitro ou Sideline Official *aprova*
-- **Sideline A** acompanha o Time A, **Sideline B** acompanha o Time B
-- Todos os perfis só acessam jogos com status `live`
+- **Relógio mestre**: controlado apenas pelo 4º Árbitro e Gestor
+- **Substituições**: Team Manager *solicita* → 4º Árbitro ou Sideline Manager *aprova*
+- **Sideline Manager — Ambos**: quando há apenas 1 oficial, ele age nos dois times
+- **TZ Controller A/B**: dois controladores independentes por time, conforme World Rugby
+- **Vínculo por jogo**: o papel de cada usuário é definido pelo Gestor na tela de edição da partida, via tabela `match_zone_officials`
 
 ---
 
