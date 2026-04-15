@@ -164,7 +164,12 @@ export type RosterRole = 'starter' | 'reserve' | 'staff';
 export type ShootoutResult = 'made' | 'missed' | 'pending';
 
 // --- User Roles ---
-export type UserRole = 'gestor' | 'quarto_arbitro';
+export type UserRole =
+  | 'gestor'
+  | 'sideline_official'
+  | 'team_manager'
+  | 'technical_zone_manager'
+  | 'quarto_arbitro';
 
 // --- Entities ---
 

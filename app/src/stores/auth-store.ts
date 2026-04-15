@@ -15,17 +15,51 @@ interface AuthState {
 }
 
 const PERMISSIONS: Record<UserRole, Set<string>> = {
+  // Gestor — administrador completo do sistema
   gestor: new Set([
     'manage_master_data',
     'create_match',
     'operate_match',
+    'approve_replacements',
+    'manage_cards',
+    'edit_score',
     'reopen_match',
     'manage_users',
     'view_audit',
     'export',
   ]),
+
+  // Sideline Official (Árbitro de Linha Lateral / Oficial de 6)
+  // World Rugby Switch: aprova substituições, registra cartões, vê timeline
+  sideline_official: new Set([
+    'operate_match',
+    'approve_replacements',
+    'manage_cards',
+    'edit_score',
+    'view_audit',
+    'export',
+  ]),
+
+  // Team Manager (Gerente de Equipe A ou B)
+  // World Rugby Switch: solicita substituições, acompanha status, exporta
+  team_manager: new Set([
+    'request_replacements',
+    'view_timeline',
+    'export',
+  ]),
+
+  // Technical Zone Manager (Gestor da Zona Técnica)
+  // Supervisiona a zona técnica, acesso somente leitura operacional
+  technical_zone_manager: new Set([
+    'view_timeline',
+    'export',
+  ]),
+
+  // 4º Árbitro — opera partida e pode reabrir, não aprova substituições diretamente
   quarto_arbitro: new Set([
     'operate_match',
+    'approve_replacements',
+    'manage_cards',
     'reopen_match',
     'export',
   ]),
