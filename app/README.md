@@ -133,14 +133,32 @@ Browser / PWA
 
 ## Perfis de Usuário
 
-### gestor
-- Gerenciar dados mestre, usuários, partidas
-- Operar e reabrir partidas
-- Ver auditoria e exportar
+Baseados nas especificações do **World Rugby Switch Training**.
 
-### quarto_arbitro
-- Operar e reabrir partidas
-- Exportar relatórios
+| Perfil | Código | Descrição |
+|---|---|---|
+| Gestor | `gestor` | Administrador completo do sistema |
+| Árbitro Lateral | `sideline_official` | Aprova substituições, cartões, placar |
+| Gerente de Equipe | `team_manager` | Solicita substituições, acompanha partida |
+| Gestor Zona Técnica | `technical_zone_manager` | Somente leitura — supervisão da zona técnica |
+| 4º Árbitro | `quarto_arbitro` | Opera partida, aprova substituições, cartões |
+
+### Permissões por perfil
+
+| Permissão | Gestor | Sideline Official | Team Manager | Zona Técnica | 4º Árbitro |
+|---|---|---|---|---|---|
+| Dados cadastrais | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Criar partida | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Operar partida | ✅ | ✅ | ❌ | ❌ | ✅ |
+| **Aprovar substituições** | ✅ | ✅ | ❌ | ❌ | ✅ |
+| **Solicitar substituições** | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Gerenciar cartões | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Editar placar | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Reabrir partida | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Ver timeline | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Gerenciar usuários | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Ver auditoria | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Exportar relatório | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
