@@ -48,6 +48,7 @@ export function ActionPanel() {
   const [cardType, setCardType] = useState<CardType | "">("");
   const [cardReason, setCardReason] = useState("");
   const [cardDescription, setCardDescription] = useState("");
+  const [isSecondYellow, setIsSecondYellow] = useState(false);
 
   // Substitution state
   const [subClubId, setSubClubId] = useState("");
@@ -171,6 +172,7 @@ export function ActionPanel() {
     setCardType("");
     setCardReason("");
     setCardDescription("");
+    setIsSecondYellow(false);
     setSubClubId("");
     setSubOutId("");
     setSubInId("");
@@ -213,7 +215,7 @@ export function ActionPanel() {
       )}
 
       {/* Card + Sub Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {canManageCards && (
           <>
             <Button
@@ -221,6 +223,7 @@ export function ActionPanel() {
               className="flex-1 h-9 bg-[var(--rugby-yellow-card)] text-black font-semibold hover:bg-[var(--rugby-yellow-card)]/80 transition-all duration-200 active:scale-95"
               onClick={() => {
                 setCardType("yellow");
+                setIsSecondYellow(false);
                 setMode("card");
               }}
               disabled={busy}
@@ -229,9 +232,23 @@ export function ActionPanel() {
             </Button>
             <Button
               size="sm"
+              className="flex-1 h-9 bg-orange-600 text-white font-semibold hover:bg-orange-700 transition-all duration-200 active:scale-95"
+              onClick={() => {
+                setCardType("yellow");
+                setIsSecondYellow(true);
+                setMode("card");
+              }}
+              disabled={busy}
+              title="2º Amarelo → Expulsão (2YC)"
+            >
+              2YC
+            </Button>
+            <Button
+              size="sm"
               className="flex-1 h-9 bg-[var(--rugby-red-card)] text-white font-semibold hover:bg-[var(--rugby-red-card)]/80 transition-all duration-200 active:scale-95"
               onClick={() => {
                 setCardType("red");
+                setIsSecondYellow(false);
                 setMode("card");
               }}
               disabled={busy}
@@ -243,11 +260,25 @@ export function ActionPanel() {
               className="flex-1 h-9 bg-[var(--rugby-red-card)]/60 text-white font-semibold hover:bg-[var(--rugby-red-card)]/50 transition-all duration-200 active:scale-95"
               onClick={() => {
                 setCardType("temp_red");
+                setIsSecondYellow(false);
                 setMode("card");
               }}
               disabled={busy}
             >
               V. Temp.
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-9 bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all duration-200 active:scale-95"
+              onClick={() => {
+                if (teamManagerClubId) setSubClubId(teamManagerClubId);
+                setSubType("front_row");
+                setMode("substitution");
+              }}
+              disabled={busy}
+              title="Substituição de linha de frente após cartão amarelo (YCS)"
+            >
+              YCS
             </Button>
           </>
         )}
@@ -332,12 +363,14 @@ export function ActionPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Registrar Cartao{" "}
-              {cardType === "yellow"
-                ? "Amarelo"
-                : cardType === "red"
-                  ? "Vermelho"
-                  : "Vermelho Temp."}
+              Registrar{" "}
+              {isSecondYellow
+                ? "2º Amarelo (Expulsão)"
+                : cardType === "yellow"
+                  ? "Cartão Amarelo"
+                  : cardType === "red"
+                    ? "Cartão Vermelho"
+                    : "Vermelho Temp."}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
