@@ -24,18 +24,9 @@ interface ParseResult {
 }
 
 // ---------------------------------------------------------------------------
-// Text item with position
+// Render PDF page to canvas, return as ImageData URL
 // ---------------------------------------------------------------------------
-interface TextItem {
-  str: string;
-  x: number;
-  y: number;
-}
-
-// ---------------------------------------------------------------------------
-// PDF extraction — keeps X/Y coordinates of each text item
-// ---------------------------------------------------------------------------
-async function extractItems(file: File): Promise<TextItem[]> {
+async function renderPageToCanvas(file: File, pageNum = 1): Promise<HTMLCanvasElement> {
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
   pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
@@ -47,79 +38,131 @@ async function extractItems(file: File): Promise<TextItem[]> {
     useSystemFonts: true,
   }).promise;
 
-  const all: TextItem[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const vp = page.getViewport({ scale: 1 });
-    const content = await page.getTextContent();
-    for (const item of content.items) {
-      if (!("str" in item) || !item.str.trim()) continue;
-      // transform: [a,b,c,d,e,f] — e=x, f=y (PDF coords, origin bottom-left)
-      const x = item.transform[4];
-      const y = vp.height - item.transform[5]; // flip to top-left origin
-      all.push({ str: item.str.trim(), x, y });
-    }
-  }
-  // Sort top→bottom, then left→right within same row (±4px tolerance)
-  all.sort((a, b) => {
-    const dy = a.y - b.y;
-    if (Math.abs(dy) > 4) return dy;
-    return a.x - b.x;
+  const page = await pdf.getPage(pageNum);
+  const scale = 2.5; // higher = better OCR accuracy
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d")!;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (page as any).render({ canvasContext: ctx, viewport, canvas }).promise;
+  return canvas;
+}
+
+// ---------------------------------------------------------------------------
+// OCR with Tesseract — returns lines with bounding box info
+// ---------------------------------------------------------------------------
+interface OcrWord {
+  text: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+async function ocrCanvas(
+  canvas: HTMLCanvasElement,
+  onProgress?: (pct: number) => void
+): Promise<OcrWord[]> {
+  const Tesseract = await import("tesseract.js");
+  const worker = await Tesseract.createWorker("eng+spa+por", 1, {
+    logger: (m: { status: string; progress: number }) => {
+      if (m.status === "recognizing text" && onProgress) {
+        onProgress(Math.round(m.progress * 100));
+      }
+    },
   });
-  return all;
-}
 
-// ---------------------------------------------------------------------------
-// Group items into logical lines (items within 4px vertical tolerance)
-// ---------------------------------------------------------------------------
-interface Line {
-  y: number;
-  items: TextItem[];
-  text: string; // full concatenated text of the line
-}
+  const result = await worker.recognize(canvas);
+  await worker.terminate();
 
-function groupIntoLines(items: TextItem[]): Line[] {
-  const lines: Line[] = [];
-  for (const item of items) {
-    const last = lines[lines.length - 1];
-    if (last && Math.abs(item.y - last.y) <= 4) {
-      last.items.push(item);
-      last.text += " " + item.str;
-    } else {
-      lines.push({ y: item.y, items: [item], text: item.str });
+  const words: OcrWord[] = [];
+  for (const block of result.data.blocks ?? []) {
+    for (const para of block.paragraphs ?? []) {
+      for (const line of para.lines ?? []) {
+        for (const word of line.words ?? []) {
+          if (word.text.trim()) {
+            words.push({
+              text: word.text.trim(),
+              x0: word.bbox.x0,
+              y0: word.bbox.y0,
+              x1: word.bbox.x1,
+              y1: word.bbox.y1,
+            });
+          }
+        }
+      }
     }
   }
-  return lines;
+  return words;
 }
 
 // ---------------------------------------------------------------------------
-// Determine page midpoint X to split columns
+// Group words into lines (by Y proximity) then into left/right columns
 // ---------------------------------------------------------------------------
-function findMidX(items: TextItem[]): number {
-  const xs = items.map((i) => i.x);
-  const min = Math.min(...xs);
-  const max = Math.max(...xs);
-  return (min + max) / 2;
+interface TextLine {
+  y: number;
+  text: string;
+  minX: number;
+}
+
+function groupWordsIntoLines(words: OcrWord[], tolerance = 8): TextLine[] {
+  const sorted = [...words].sort((a, b) => {
+    const dy = a.y0 - b.y0;
+    if (Math.abs(dy) > tolerance) return dy;
+    return a.x0 - b.x0;
+  });
+
+  const lines: Array<{ y: number; words: OcrWord[] }> = [];
+  for (const w of sorted) {
+    const last = lines[lines.length - 1];
+    if (last && Math.abs(w.y0 - last.y) <= tolerance) {
+      last.words.push(w);
+    } else {
+      lines.push({ y: w.y0, words: [w] });
+    }
+  }
+
+  return lines.map((l) => ({
+    y: l.y,
+    text: l.words.map((w) => w.text).join(" "),
+    minX: Math.min(...l.words.map((w) => w.x0)),
+  }));
 }
 
 // ---------------------------------------------------------------------------
-// Parse a single column's lines into players
+// Parse a column's lines into players
 // ---------------------------------------------------------------------------
 function parseColumn(lines: string[]): ParsedPlayer[] {
   const players: ParsedPlayer[] = [];
   let role: "starter" | "reserve" | "staff" = "starter";
 
-  const playerRe = /^(\d{1,2})\s+(.+)$/;
-  // Staff: "— Name — ROLE" or "Name — ROLE" or "— Name – ROLE"
-  const staffRe = /^[—–-]?\s*(.+?)\s+[—–-]+\s+(.+)$/;
+  // Player: starts with 1–2 digit number then name
+  const playerRe = /^(\d{1,2})[.\s]+(.{3,})$/;
+  // Staff: "Name — ROLE" or "— Name — ROLE"
+  const staffRe = /^[—\-]?\s*(.+?)\s+[—\-]+\s+(.+)$/;
+
+  const SKIP = [
+    "MATCH SHEET", "ÁRBITRO", "ARBITRO", "ASISTENTE", "PLANILLERO",
+    "MEDICO", "MÉDICO", "LOCAL", "VISITANTE", "RESULTADO", "SUPER RUGBY",
+    "PARTIDO", "FECHA", "LUGAR", "TMO", "COMMISSIONER", "JUDICIAL",
+    "CITACI", "APELACI", "SAR", "AMERICAS", "TEAM A", "TEAM B",
+    "© SAR", "UBICACI", "19:06", "NACIONAL",
+  ];
 
   for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
+    const line = raw.trim().replace(/\s+/g, " ");
+    if (!line || line.length < 2) continue;
     const up = line.toUpperCase();
 
-    // Section markers
-    if (up.includes("SUPLENTE") || up.includes("SUBSTITUTE") || up.includes("RESERVE")) {
+    if (SKIP.some((s) => up.includes(s))) continue;
+    // Skip pure numbers (scores, partido number)
+    if (/^\d+$/.test(line)) continue;
+
+    if (up.includes("SUPLENTE") || up.includes("SUBSTITUTE")) {
       role = "reserve";
       continue;
     }
@@ -128,27 +171,12 @@ function parseColumn(lines: string[]): ParsedPlayer[] {
       continue;
     }
 
-    // Skip header/meta lines
-    if (
-      up.includes("MATCH SHEET") || up.includes("ÁRBITRO") || up.includes("ASISTENTE") ||
-      up.includes("PLANILLERO") || up.includes("MÉDICO") || up.includes("MÉDICO") ||
-      up.includes("LOCAL") || up.includes("VISITANTE") || up.includes("RESULTADO") ||
-      up.includes("SUPER RUGBY") || up.includes("PARTIDO") || up.includes("FECHA") ||
-      up.includes("LUGAR") || up.includes("TMO") || up.includes("COMMISSIONER") ||
-      up.includes("JUDICIAL") || up.includes("CITACI") || up.includes("APELACI") ||
-      up.includes("SAR 4N") || up.includes("TEAM A") || up.includes("TEAM B") ||
-      up.includes("AMERICAS") || up.match(/^\d{2}\/\d{2}\/\d{4}/) ||
-      up.match(/^(A|B|19|48|31)$/) // score/partido numbers
-    ) {
-      continue;
-    }
-
     if (role === "staff") {
       const m = line.match(staffRe);
       if (m) {
         players.push({
           shirtNumber: 0,
-          playerName: m[1].trim(),
+          playerName: m[1].replace(/^[—\-]\s*/, "").trim(),
           role: "staff",
           staffRole: m[2].trim(),
         });
@@ -168,20 +196,18 @@ function parseColumn(lines: string[]): ParsedPlayer[] {
       }
     }
   }
+
   return players;
 }
 
 // ---------------------------------------------------------------------------
-// Main parser — splits PDF items into two columns by X coordinate
+// Main: split by column X midpoint and parse each side
 // ---------------------------------------------------------------------------
-function parseMatchSheet(items: TextItem[]): ParseResult {
-  const midX = findMidX(items);
+function parseFromLines(lines: TextLine[], canvasWidth: number): ParseResult {
+  const midX = canvasWidth / 2;
 
-  const leftItems = items.filter((i) => i.x < midX);
-  const rightItems = items.filter((i) => i.x >= midX);
-
-  const leftLines = groupIntoLines(leftItems).map((l) => l.text);
-  const rightLines = groupIntoLines(rightItems).map((l) => l.text);
+  const leftLines = lines.filter((l) => l.minX < midX).map((l) => l.text);
+  const rightLines = lines.filter((l) => l.minX >= midX).map((l) => l.text);
 
   return {
     teamA: { label: "Time A (LOCAL)", players: parseColumn(leftLines) },
@@ -211,6 +237,7 @@ export function MatchSheetImporter({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<ImportStatus>("idle");
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const { addRosterEntry, roster, removeRosterEntry } = useMatchStore();
@@ -222,27 +249,35 @@ export function MatchSheetImporter({
       return;
     }
     setStatus("loading");
+    setProgress(0);
     setError("");
     try {
-      const items = await extractItems(file);
-      if (items.length === 0) {
-        setError("O PDF não contém texto extraível. Verifique se o arquivo não é uma imagem escaneada.");
+      // Render page 1 to canvas
+      const canvas = await renderPageToCanvas(file, 1);
+
+      // OCR
+      const words = await ocrCanvas(canvas, setProgress);
+
+      if (words.length === 0) {
+        setError("OCR não encontrou texto na página. Verifique se o PDF tem boa resolução.");
         setStatus("error");
         return;
       }
-      const result = parseMatchSheet(items);
+
+      const lines = groupWordsIntoLines(words);
+      const result = parseFromLines(lines, canvas.width);
       const total = result.teamA.players.length + result.teamB.players.length;
+
       if (total === 0) {
-        setError(
-          "Não foi possível extrair jogadores. Verifique se é o arquivo SAR 4N correto."
-        );
+        setError("Jogadores não encontrados. Verifique se é o arquivo SAR 4N correto.");
         setStatus("error");
         return;
       }
+
       setParsed(result);
       setStatus("preview");
     } catch (e) {
-      setError(`Erro ao ler PDF: ${e instanceof Error ? e.message : String(e)}`);
+      setError(`Erro: ${e instanceof Error ? e.message : String(e)}`);
       setStatus("error");
     }
   };
@@ -251,11 +286,9 @@ export function MatchSheetImporter({
     if (!parsed) return;
     setStatus("importing");
     try {
-      // Clear existing roster for this match
       const existing = roster.filter((r) => r.matchId === matchId);
       for (const r of existing) await removeRosterEntry(r.id);
 
-      // Team A → homeClubId
       for (const p of parsed.teamA.players) {
         await addRosterEntry({
           matchId,
@@ -267,8 +300,6 @@ export function MatchSheetImporter({
           active: p.role === "starter",
         });
       }
-
-      // Team B → awayClubId
       for (const p of parsed.teamB.players) {
         await addRosterEntry({
           matchId,
@@ -295,6 +326,7 @@ export function MatchSheetImporter({
     setStatus("idle");
     setParsed(null);
     setError("");
+    setProgress(0);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -333,9 +365,19 @@ export function MatchSheetImporter({
       )}
 
       {status === "loading" && (
-        <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] justify-center py-4">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Lendo PDF...
+        <div className="space-y-2 py-2">
+          <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] justify-center">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {progress === 0 ? "Renderizando PDF..." : `OCR em andamento — ${progress}%`}
+          </div>
+          {progress > 0 && (
+            <div className="w-full bg-[var(--muted)] rounded-full h-1.5">
+              <div
+                className="bg-[var(--rugby-try)] h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -356,9 +398,7 @@ export function MatchSheetImporter({
           <div className="text-xs text-[var(--muted-foreground)] font-medium uppercase tracking-wide">
             Pré-visualização — confirme antes de importar
           </div>
-
           <div className="grid grid-cols-2 gap-3">
-            {/* Team A */}
             <div className="border border-[var(--border)] rounded-md p-2 space-y-1 max-h-64 overflow-y-auto">
               <div className="text-xs font-bold text-[var(--foreground)] mb-1 sticky top-0 bg-[var(--card)]">
                 {homeClubName}
@@ -375,7 +415,6 @@ export function MatchSheetImporter({
                 </div>
               ))}
             </div>
-            {/* Team B */}
             <div className="border border-[var(--border)] rounded-md p-2 space-y-1 max-h-64 overflow-y-auto">
               <div className="text-xs font-bold text-[var(--foreground)] mb-1 sticky top-0 bg-[var(--card)]">
                 {awayClubName}
@@ -393,7 +432,6 @@ export function MatchSheetImporter({
               ))}
             </div>
           </div>
-
           <div className="flex gap-2">
             <Button size="sm" onClick={handleImport} className="flex-1">
               Confirmar Importação
