@@ -300,6 +300,12 @@ export function MatchSheetImporter({
       }
 
       const lines = groupWordsIntoLines(words);
+
+      // Debug: log all lines to console so we can inspect the raw OCR output
+      console.log("=== OCR LINES ===");
+      lines.forEach((l, i) => console.log(`[${i}] x=${Math.round(l.minX)} y=${Math.round(l.y)} | "${l.text}"`));
+      console.log("=== END OCR LINES ===");
+
       const result = parseFromLines(lines, canvas.width);
       const total = result.teamA.players.length + result.teamB.players.length;
 
