@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { OrganizingEntitySelector } from "@/components/organizing-entity-selector";
 import { ZoneOfficialsSelector } from "@/components/zone-officials-selector";
+import { MatchSheetImporter } from "@/components/match/match-sheet-importer";
 import { ArrowLeft } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -189,6 +190,16 @@ export default function EditMatchPage() {
             <div className="space-y-1">
               <Label>{t("match.scheduled_start")}</Label>
               <Input type="time" value={scheduledStartTime} onChange={(e) => setScheduledStartTime(e.target.value)} className="w-40" />
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-4">
+              <MatchSheetImporter
+                matchId={matchId}
+                homeClubId={homeClubId}
+                awayClubId={awayClubId}
+                homeClubName={clubs.find((c) => c.id === homeClubId)?.name ?? t("match.home_short")}
+                awayClubName={clubs.find((c) => c.id === awayClubId)?.name ?? t("match.away_short")}
+              />
             </div>
 
             <div className="border-t border-[var(--border)] pt-4">
