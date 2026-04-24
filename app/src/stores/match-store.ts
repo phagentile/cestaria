@@ -519,12 +519,19 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
 
   // Cards
   addCard: async (clubId, rosterId, cardType, reason, description) => {
-    const { match, addEvent } = get();
+    const { match, addEvent, disciplinaryClocks } = get();
     if (!match) return;
 
-    const eventType: EventType =
-      cardType === 'yellow' ? 'yellow_card' :
-      cardType === 'red' ? 'red_card' : 'temp_red_card';
+    // 2YC: if player already has an active yellow card and receives another yellow → second_yellow_card (permanent expulsion)
+    let eventType: EventType;
+    if (cardType === 'yellow') {
+      const hasActiveYellow = disciplinaryClocks.some(
+        (c) => c.rosterId === rosterId && c.clockType === 'yellow' && c.status === 'active'
+      );
+      eventType = hasActiveYellow ? 'second_yellow_card' : 'yellow_card';
+    } else {
+      eventType = cardType === 'red' ? 'red_card' : 'temp_red_card';
+    }
 
     const minute = Math.floor(match.clockSeconds / 60);
     const second = Math.floor(match.clockSeconds % 60);
@@ -540,6 +547,23 @@ export const useMatchStore = create<MatchState>()((set, get) => ({
       points: 0,
       metadata: { reason, description, cardType },
     });
+
+    // 2YC: cancel existing yellow clock (player is now permanently expelled)
+    if (eventType === 'second_yellow_card') {
+      const existingClock = disciplinaryClocks.find(
+        (c) => c.rosterId === rosterId && c.clockType === 'yellow' && c.status === 'active'
+      );
+      if (existingClock) {
+        await db.disciplinaryClocks.update(existingClock.id, { status: 'cancelled' });
+        set((state) => ({
+          disciplinaryClocks: state.disciplinaryClocks.map((c) =>
+            c.id === existingClock.id ? { ...c, status: 'cancelled' } : c
+          ),
+        }));
+        syncWrite('disciplinaryClocks', { ...existingClock, status: 'cancelled' });
+      }
+      return;
+    }
 
     // Create disciplinary clock for yellow and temp_red
     if (cardType === 'yellow' || cardType === 'temp_red') {

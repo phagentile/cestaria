@@ -42,8 +42,10 @@ const EVENT_CIRCLE_COLOR: Partial<Record<EventType, string>> = {
   drop_goal_missed: "bg-red-500 text-white",
   penalty_try: "bg-[var(--rugby-try)] text-white",
   yellow_card: "bg-[var(--rugby-yellow-card)] text-black",
+  second_yellow_card: "bg-orange-600 text-white",
   red_card: "bg-[var(--rugby-red-card)] text-white",
   temp_red_card: "bg-[var(--rugby-red-card)]/70 text-white",
+  front_row_sub: "bg-blue-600 text-white",
   substitution_out: "bg-[var(--rugby-substitution)] text-white",
   substitution_in: "bg-[var(--rugby-substitution)] text-white",
   card_return: "bg-[var(--rugby-try)] text-white",
@@ -60,8 +62,10 @@ const EVENT_LINE_COLOR: Partial<Record<EventType, string>> = {
   drop_goal_missed: "border-red-500",
   penalty_try: "border-[var(--rugby-try)]",
   yellow_card: "border-[var(--rugby-yellow-card)]",
+  second_yellow_card: "border-orange-600",
   red_card: "border-[var(--rugby-red-card)]",
   temp_red_card: "border-[var(--rugby-red-card)]/70",
+  front_row_sub: "border-blue-600",
   substitution_out: "border-[var(--rugby-substitution)]",
   substitution_in: "border-[var(--rugby-substitution)]",
   card_return: "border-[var(--rugby-try)]",
@@ -85,9 +89,12 @@ function EventIcon({ type }: { type: EventType }) {
     case "substitution_in":
       return <ArrowRightLeft className="w-3.5 h-3.5" />;
     case "yellow_card":
+    case "second_yellow_card":
     case "red_card":
     case "temp_red_card":
       return <AlertTriangle className="w-3.5 h-3.5" />;
+    case "front_row_sub":
+      return <ArrowRightLeft className="w-3.5 h-3.5" />;
     case "card_return":
       return <UserCheck className="w-3.5 h-3.5" />;
     case "medical_return":

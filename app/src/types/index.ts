@@ -69,6 +69,8 @@ export type EventType =
   | 'yellow_card'
   | 'red_card'
   | 'temp_red_card'
+  | 'second_yellow_card'   // 2YC: segundo amarelo → expulsão
+  | 'front_row_sub'        // YCS: substituição de linha de frente após cartão
   | 'substitution_out'
   | 'substitution_in'
   | 'card_return'           // atleta retorna ao campo após amarelo/temp_red
@@ -100,6 +102,8 @@ export const EVENT_LABELS: Record<EventType, string> = {
   yellow_card: 'Cartão Amarelo',
   red_card: 'Cartão Vermelho',
   temp_red_card: 'Vermelho Temporário',
+  second_yellow_card: '2º Amarelo (Expulsão)',
+  front_row_sub: 'Sub. Linha de Frente (YCS)',
   substitution_out: 'Saída',
   substitution_in: 'Entrada',
   card_return: 'Retorno de Cartão',

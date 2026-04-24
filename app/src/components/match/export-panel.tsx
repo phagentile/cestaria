@@ -4,8 +4,35 @@ import { useMatchStore } from "@/stores/match-store";
 import { useAdminStore } from "@/stores/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { EVENT_LABELS } from "@/types";
+import type { EventType } from "@/types";
 import { formatMinSec } from "@/lib/format";
+
+// Glossário SAR 4N — usado apenas na exportação
+const SAR_CODES: Partial<Record<EventType, string>> = {
+  try: 'TRY',
+  conversion_made: 'CON',
+  conversion_missed: 'CON MISS',
+  penalty_kick_made: 'PEN',
+  penalty_kick_missed: 'PEN MISS',
+  drop_goal_made: 'DG',
+  drop_goal_missed: 'DG MISS',
+  penalty_try: 'PEN TRY',
+  yellow_card: 'YC',
+  second_yellow_card: '2YC',
+  red_card: 'RC',
+  temp_red_card: 'TEMP ON',
+  card_return: 'TEMP OFF',
+  substitution_out: 'SUB OFF',
+  substitution_in: 'SUB ON',
+  blood_time_start: 'C BIN ON',
+  blood_time_end: 'C BIN OFF',
+  hia_start: 'C BIN ON',
+  hia_end: 'C BIN OFF',
+  front_row_sub: 'YCS',
+  period_start: 'HT',
+  period_end: 'FT',
+  medical_return: 'TEMP OFF',
+};
 import { toast } from "sonner";
 import { Download, FileText, AlertTriangle, FileCheck } from "lucide-react";
 
@@ -77,7 +104,8 @@ export function ExportPanel() {
 
       const time = formatMinSec(evt.minute, evt.second);
       const teamName = (club?.acronym ?? "—").padEnd(10);
-      let eventDesc = EVENT_LABELS[evt.eventType];
+      const sarCode = SAR_CODES[evt.eventType] ?? evt.eventType.toUpperCase();
+      let eventDesc = sarCode;
       if (player)
         eventDesc += ` - #${player.shirtNumber} ${player.playerName}`;
       if (evt.eventType === "penalty_try") eventDesc += " (#00)";
