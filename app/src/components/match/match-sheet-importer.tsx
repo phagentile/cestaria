@@ -80,23 +80,58 @@ async function ocrCanvas(
   await worker.terminate();
 
   const words: OcrWord[] = [];
-  for (const block of result.data.blocks ?? []) {
-    for (const para of block.paragraphs ?? []) {
-      for (const line of para.lines ?? []) {
-        for (const word of line.words ?? []) {
-          if (word.text.trim()) {
-            words.push({
-              text: word.text.trim(),
-              x0: word.bbox.x0,
-              y0: word.bbox.y0,
-              x1: word.bbox.x1,
-              y1: word.bbox.y1,
-            });
+
+  // Primary: use result.data.words (always populated in tesseract.js v4+)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawWords: any[] = (result.data as any).words ?? [];
+  for (const w of rawWords) {
+    if (w?.text?.trim() && w?.bbox) {
+      words.push({
+        text: w.text.trim(),
+        x0: w.bbox.x0,
+        y0: w.bbox.y0,
+        x1: w.bbox.x1,
+        y1: w.bbox.y1,
+      });
+    }
+  }
+
+  // Fallback: if words is empty, try blocks → paragraphs → lines → words
+  if (words.length === 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blocks: any[] = (result.data as any).blocks ?? [];
+    for (const block of blocks) {
+      for (const para of block.paragraphs ?? []) {
+        for (const line of para.lines ?? []) {
+          for (const w of line.words ?? []) {
+            if (w?.text?.trim() && w?.bbox) {
+              words.push({ text: w.text.trim(), x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 });
+            }
           }
         }
       }
     }
   }
+
+  // Last resort: parse raw text without position data, assign synthetic X based on indentation
+  if (words.length === 0 && result.data.text) {
+    const lines = result.data.text.split("\n");
+    let y = 0;
+    for (const line of lines) {
+      if (!line.trim()) { y += 20; continue; }
+      // Estimate column by leading spaces
+      const leadSpaces = line.length - line.trimStart().length;
+      const x = leadSpaces > 10 ? canvas.width * 0.55 : 10;
+      const toks = line.trim().split(/\s+/);
+      let cx = x;
+      for (const tok of toks) {
+        words.push({ text: tok, x0: cx, y0: y, x1: cx + tok.length * 8, y1: y + 16 });
+        cx += tok.length * 8 + 4;
+      }
+      y += 20;
+    }
+  }
+
   return words;
 }
 
