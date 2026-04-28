@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User, UserRole, MatchZoneRole } from '@/types';
-import { db } from '@/lib/db';
+import { db, hashPassword, verifyPassword } from '@/lib/db';
 
 interface AuthState {
   user: User | null;
@@ -131,24 +131,32 @@ export const useAuthStore = create<AuthState>()(
 
       loginWithPassword: async (email: string, password: string) => {
         const user = await db.users.where('email').equals(email.trim().toLowerCase()).first();
-        if (user && user.password === password) {
-          set({ user });
-          return true;
+        if (!user) return false;
+        const valid = await verifyPassword(password, user.password);
+        if (!valid) return false;
+        // Rehash on-the-fly if password was still plain-text (migration)
+        if (!user.password.startsWith('$2')) {
+          const hashed = await hashPassword(password);
+          await db.users.update(user.id, { password: hashed });
+          user.password = hashed;
         }
-        return false;
+        set({ user });
+        return true;
       },
 
       resetPassword: async (email: string) => {
         const user = await db.users.where('email').equals(email.trim().toLowerCase()).first();
         if (!user) return null;
-        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        const newPassword = Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-        await db.users.update(user.id, { password: newPassword });
-        return newPassword;
+        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+        const newPassword = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        const hashed = await hashPassword(newPassword);
+        await db.users.update(user.id, { password: hashed });
+        return newPassword; // returned once to display in UI, never stored plain
       },
 
       updatePassword: async (userId: string, newPassword: string) => {
-        await db.users.update(userId, { password: newPassword });
+        const hashed = await hashPassword(newPassword);
+        await db.users.update(userId, { password: hashed });
         const updated = await db.users.get(userId);
         if (updated) set({ user: updated });
       },
@@ -195,6 +203,20 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'cestaria-auth',
       storage: createJSONStorage(() => localStorage),
+      // Never persist the password field — only safe identity fields
+      partialize: (state) => ({
+        user: state.user
+          ? {
+              id: state.user.id,
+              email: state.user.email,
+              name: state.user.name,
+              role: state.user.role,
+              // password intentionally omitted
+            }
+          : null,
+        activeMatchRole: state.activeMatchRole,
+        activeMatchId: state.activeMatchId,
+      }),
     }
   )
 );
